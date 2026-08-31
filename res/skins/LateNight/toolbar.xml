@@ -19,6 +19,22 @@
         <Size>12f,9min</Size>
       </WidgetGroup>
 
+      <!-- Modo do prato: VINYL agarra o audio (scratch), CD apenas adianta ou
+           atrasa a musica (pitch bend). O controle e global e o script do
+           mapeamento reage a ele, entao o botao vale para os dois decks. -->
+      <Template src="skins:LateNight/controls/button_2state.xml">
+        <SetVariable name="ObjectName">GuiToggleButton</SetVariable>
+        <SetVariable name="Size">80f,20f</SetVariable>
+        <SetVariable name="state_0_text">JOG: CD</SetVariable>
+        <SetVariable name="state_1_text">JOG: VINYL</SetVariable>
+        <SetVariable name="ConfigKey">[App],jog_vinyl_mode</SetVariable>
+      </Template>
+
+      <WidgetGroup>
+        <ObjectName>ToolbarSeparator</ObjectName>
+        <Size>12f,9min</Size>
+      </WidgetGroup>
+
       <WidgetGroup><!-- GUI toggles with regular library -->
         <ObjectName>ToolBarSection</ObjectName>
         <SizePolicy>min,min</SizePolicy>

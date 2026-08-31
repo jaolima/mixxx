@@ -176,6 +176,10 @@ PioneerDDJFLX4.sendKeepAlive = function() {
 };
 
 // Jog wheel constants
+// vinylMode ligado: o prato agarra o audio como um vinil (scratch).
+// Desligado: o prato so adianta/atrasa a musica (pitch bend), sem parar a
+// reproducao - o "modo CD". O valor inicial vem da opcao do mapeamento e pode
+// ser alternado durante o set por PioneerDDJFLX4.toggleVinylMode.
 PioneerDDJFLX4.vinylMode = true;
 PioneerDDJFLX4.alpha = 1.0/8;
 PioneerDDJFLX4.beta = PioneerDDJFLX4.alpha/32;
@@ -251,6 +255,20 @@ PioneerDDJFLX4.toggleLight = function(midiIn, active) {
 //
 
 PioneerDDJFLX4.init = function() {
+    // Estado inicial do prato vindo das opcoes do mapeamento. getSetting devolve
+    // undefined em mapeamentos antigos ou se a opcao for removida, entao mantemos
+    // o vinil como padrao nesse caso.
+    const vinylSetting = engine.getSetting("vinyl_mode");
+    if (vinylSetting !== undefined) {
+        engine.setValue("[App]", "jog_vinyl_mode", vinylSetting ? 1 : 0);
+    }
+    PioneerDDJFLX4.applyVinylMode(engine.getValue("[App]", "jog_vinyl_mode"));
+
+    // O botao da interface (e qualquer outra fonte) chega por aqui.
+    engine.makeConnection("[App]", "jog_vinyl_mode", function(value) {
+        PioneerDDJFLX4.applyVinylMode(value);
+    });
+
     engine.setValue("[EffectRack1_EffectUnit1]", "show_focus", 1);
 
     engine.makeConnection("[Channel1]", "vu_meter", PioneerDDJFLX4.vuMeterUpdate);
@@ -649,6 +667,43 @@ PioneerDDJFLX4.jogTouch = function(channel, _control, value) {
 
 PioneerDDJFLX4.shiftPressed = function(channel, _control, value, _status, _group) {
     PioneerDDJFLX4.shiftButtonDown[channel] = value === 0x7F;
+};
+
+
+//
+// Vinyl mode (scratch) x modo CD (pitch bend)
+//
+// Equivale ao botao VINIL de outros softwares de DJ: alterna se o prato agarra
+// o audio (scratch) ou apenas adianta/atrasa a musica. Vale para os dois decks,
+// que e como o jogo de mao do DJ espera - nao faz sentido um prato arranhar e o
+// outro nao.
+//
+
+// Aplica o modo vindo do controle [App],jog_vinyl_mode. Esse controle e a ponte
+// com o botao da interface: um script de controlador nao pode criar controles,
+// entao ele e criado pelo PlayerManager e apenas observado aqui.
+PioneerDDJFLX4.applyVinylMode = function(value) {
+    PioneerDDJFLX4.vinylMode = Boolean(value);
+
+    // Se o prato estava agarrado ao audio quando o modo foi desligado, e preciso
+    // soltar agora - senao a musica fica presa ate o proximo toque no prato.
+    if (!PioneerDDJFLX4.vinylMode) {
+        for (let deckNum = 1; deckNum <= 2; deckNum++) {
+            if (engine.isScratching(deckNum)) {
+                engine.scratchDisable(deckNum);
+            }
+        }
+    }
+};
+
+// Handler para um botao fisico, caso um dia seja mapeado. Escreve no controle e
+// deixa a conexao aplicar - assim botao, interface e script nunca divergem.
+PioneerDDJFLX4.toggleVinylMode = function(_channel, _control, value, _status, _group) {
+    if (value === 0) {
+        return; // ignora o release: alterna so ao pressionar
+    }
+    const atual = engine.getValue("[App]", "jog_vinyl_mode");
+    engine.setValue("[App]", "jog_vinyl_mode", atual > 0 ? 0 : 1);
 };
 
 
