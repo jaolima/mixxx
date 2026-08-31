@@ -9,6 +9,8 @@
 #include <QShortcut>
 #include <QSizePolicy>
 #include <QStringLiteral>
+#include <QAction>
+#include <QIcon>
 #include <QToolButton>
 
 #include "moc_wsearchlineedit.cpp"
@@ -153,6 +155,28 @@ WSearchLineEdit::~WSearchLineEdit() {
 }
 
 void WSearchLineEdit::setup(const QDomNode& node, const SkinContext& context) {
+    // Permite que a skin diga o que esta caixa procura. Com mais de uma
+    // caixa na tela - uma para faixas, outra para a arvore lateral - o
+    // texto padrao "Search..." nao distinguiria as duas.
+    QString placeholder;
+    if (context.hasNodeSelectString(node, "Placeholder", &placeholder) &&
+            !placeholder.isEmpty()) {
+        lineEdit()->setPlaceholderText(placeholder);
+    }
+
+    // Icone opcional a esquerda do campo (a lupa). Fica como acao read-only:
+    // nao e clicavel, serve so para identificar o campo como uma busca.
+    QString iconPath;
+    if (context.hasNodeSelectString(node, "Icon", &iconPath) && !iconPath.isEmpty()) {
+        const QIcon icon(context.makeSkinPath(iconPath));
+        if (!icon.isNull()) {
+            if (m_pSearchIconAction) {
+                lineEdit()->removeAction(m_pSearchIconAction);
+            }
+            m_pSearchIconAction = lineEdit()->addAction(icon, QLineEdit::LeadingPosition);
+        }
+    }
+
     auto backgroundColor = kDefaultBackgroundColor;
     QString bgColorName;
     if (context.hasNodeSelectString(node, "BgColor", &bgColorName)) {
