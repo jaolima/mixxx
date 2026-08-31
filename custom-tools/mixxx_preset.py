@@ -129,6 +129,21 @@ AJUSTES = [
         "porque": "ponto de partida tipico de cada estilo",
     },
     {
+        "rotulo": "Prato (jog wheel)",
+        # Opcao do mapeamento da FLX4. O grupo e montado pelo Mixxx como
+        # [ControllerSettings_<nome do device>_<caminho do mapeamento>], com
+        # %RESOURCE_PATH no lugar da pasta res/ - por isso a chave nao quebra se
+        # o projeto mudar de lugar. Ver src/controllers/legacycontrollermapping.cpp.
+        "escopo": "[ControllerSettings_DDJ-FLX4_%RESOURCE_PATH"
+                  "controllers/Pioneer-DDJ-FLX4.midi.xml]",
+        "chave": "vinyl_mode",
+        "valores": {"hiphop": "true", "house": "false"},
+        "padrao": "true",
+        "legivel": {"true": "vinil (scratch)", "false": "CD (pitch bend)"},
+        "porque": "no hip hop o prato agarra o audio para scratch; em house ele "
+                  "so adianta/atrasa a musica sem parar a reproducao",
+    },
+    {
         "rotulo": "Motor do keylock",
         "escopo": "[App]",
         # Igual nos dois presets de proposito. RubberBand e melhor que SoundTouch
