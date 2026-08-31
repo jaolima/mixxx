@@ -168,6 +168,10 @@ void WTrackTableViewHeader::contextMenuEvent(QContextMenuEvent* pEvent) {
     m_menu.popup(pEvent->globalPos());
 }
 
+void WTrackTableViewHeader::popupColumnMenu(const QPoint& globalPos) {
+    m_menu.popup(globalPos);
+}
+
 void WTrackTableViewHeader::setModel(QAbstractItemModel* pModel) {
     TrackModel* pOldTrackModel = getTrackModel();
 

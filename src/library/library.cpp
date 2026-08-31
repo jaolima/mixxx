@@ -5,6 +5,7 @@
 #include <QMessageBox>
 
 #include "control/controlobject.h"
+#include "control/controlpushbutton.h"
 #include "controllers/keyboard/keyboardeventfilter.h"
 #include "library/analysis/analysisfeature.h"
 #include "library/autodj/autodjfeature.h"
@@ -72,8 +73,17 @@ Library::Library(
           m_pSidebarModel(make_parented<SidebarModel>(this)),
           m_pLibraryControl(make_parented<LibraryControl>(this)),
           m_pLibraryWidget(nullptr),
+          m_pTrackCount(std::make_unique<ControlObject>(
+                  ConfigKey(QStringLiteral("[Library]"),
+                          QStringLiteral("track_count")))),
           m_pKeyNotation(std::make_unique<ControlObject>(
-                  mixxx::library::prefs::kKeyNotationConfigKey, false)) {
+                  mixxx::library::prefs::kKeyNotationConfigKey, false)),
+          m_pShowColumnsMenu(std::make_unique<ControlPushButton>(
+                  ConfigKey(QStringLiteral("[Library]"),
+                          QStringLiteral("show_columns_menu")))) {
+    // Trigger: cada acionamento abre o menu, sem manter estado ligado/desligado.
+    m_pShowColumnsMenu->setButtonMode(mixxx::control::ButtonMode::Trigger);
+
     qRegisterMetaType<LibraryRemovalType>("LibraryRemovalType");
 
     connect(m_pTrackCollectionManager,
@@ -338,7 +348,29 @@ void Library::bindSearchboxWidget(WSearchLineEdit* pSearchboxWidget) {
             &LibraryControl::setLibraryFocus);
 }
 
+void Library::bindSidebarSearchboxWidget(WSearchLineEdit* pSearchbox) {
+    m_pSidebarSearchbox = pSearchbox;
+    connectSidebarSearch();
+}
+
+void Library::connectSidebarSearch() {
+    // So conecta quando os dois lados existirem: a skin declara a caixa antes
+    // da arvore, entao esta funcao e chamada duas vezes e age na segunda.
+    if (!m_pSidebarWidget || !m_pSidebarSearchbox) {
+        return;
+    }
+    // UniqueConnection porque esta funcao e chamada pelos dois lados: quem
+    // chegar por ultimo faz a ligacao, e uma nova chamada nao deve duplicar.
+    connect(m_pSidebarSearchbox,
+            &WSearchLineEdit::search,
+            m_pSidebarWidget,
+            &WLibrarySidebar::slotFilterTree,
+            Qt::UniqueConnection);
+    m_pSidebarSearchbox->setEnabled(true);
+}
+
 void Library::bindSidebarWidget(WLibrarySidebar* pSidebarWidget) {
+    m_pSidebarWidget = pSidebarWidget;
     const auto sidebarHoverExpandDelay =
             m_pConfig->getValue(
                     kSidebarHoverExpandDelayConfigKey,
@@ -349,6 +381,7 @@ void Library::bindSidebarWidget(WLibrarySidebar* pSidebarWidget) {
 
     // Setup the sources view
     pSidebarWidget->setModel(m_pSidebarModel);
+    connectSidebarSearch();
     connect(m_pSidebarModel,
             &SidebarModel::selectIndex,
             pSidebarWidget,

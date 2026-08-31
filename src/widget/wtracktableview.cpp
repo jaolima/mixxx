@@ -74,6 +74,9 @@ WTrackTableView::WTrackTableView(QWidget* pParent,
     m_pSortOrder = new ControlProxy("[Library]", "sort_order", this);
     m_pSortOrder->connectValueChanged(this, &WTrackTableView::applySortingIfVisible);
 
+    m_pShowColumnsMenu = new ControlProxy("[Library]", "show_columns_menu", this);
+    m_pShowColumnsMenu->connectValueChanged(this, &WTrackTableView::slotShowColumnsMenu);
+
     connect(this,
             &WTrackTableView::scrollValueChanged,
             this,
@@ -143,6 +146,43 @@ void WTrackTableView::selectionChanged(
     }
 #endif
     QTableView::selectionChanged(selected, deselected);
+}
+
+void WTrackTableView::showEvent(QShowEvent* pEvent) {
+    WLibraryTableView::showEvent(pEvent);
+    updateTrackCount();
+}
+
+void WTrackTableView::updateTrackCount() {
+    // Ha uma tabela por view (biblioteca, crates, playlists) e todas continuam
+    // vivas em segundo plano; sem este teste a tabela escondida sobrescreveria a
+    // contagem da que esta a vista.
+    if (!isVisible()) {
+        return;
+    }
+    const QAbstractItemModel* pModel = model();
+    ControlObject::set(ConfigKey(QStringLiteral("[Library]"),
+                               QStringLiteral("track_count")),
+            pModel ? pModel->rowCount() : 0);
+}
+
+void WTrackTableView::slotShowColumnsMenu(double value) {
+    if (value <= 0) {
+        return;
+    }
+    // O controle e global, mas existe uma tabela por view (biblioteca, crates,
+    // playlists). Sem este teste, todas abririam o menu ao mesmo tempo e o
+    // usuario veria o menu da tabela errada.
+    if (!isVisible()) {
+        return;
+    }
+    auto* pHeader = qobject_cast<WTrackTableViewHeader*>(horizontalHeader());
+    VERIFY_OR_DEBUG_ASSERT(pHeader) {
+        return;
+    }
+    // Ancora o menu no canto inferior esquerdo do cabecalho, como se tivesse
+    // saido dele - que e de onde o menu conceitualmente pertence.
+    pHeader->popupColumnMenu(pHeader->mapToGlobal(QPoint(0, pHeader->height())));
 }
 
 void WTrackTableView::slotGuiTick50ms(double /*unused*/) {
@@ -260,6 +300,35 @@ void WTrackTableView::loadTrackModel(QAbstractItemModel* pNewModel, bool restore
     setHorizontalHeader(tempHeader);
 
     setModel(pNewModel);
+
+    // Mantem [Library],track_count em dia com o que a tabela mostra. A busca
+    // filtra o modelo, entao estes mesmos sinais cobrem tanto a troca de view
+    // quanto a digitacao na caixa de busca.
+    //
+    // UniqueConnection e obrigatorio: o retorno antecipado la em cima so evita
+    // repetir o trabalho quando o modelo e o mesmo da chamada anterior. Indo e
+    // voltando entre duas views (biblioteca -> crate -> biblioteca) chegariamos
+    // aqui de novo com um modelo ja conectado, e as conexoes se acumulariam a
+    // cada troca.
+    for (const auto signal : {&QAbstractItemModel::rowsInserted,
+                 &QAbstractItemModel::rowsRemoved}) {
+        connect(pNewModel,
+                signal,
+                this,
+                &WTrackTableView::updateTrackCount,
+                Qt::UniqueConnection);
+    }
+    connect(pNewModel,
+            &QAbstractItemModel::modelReset,
+            this,
+            &WTrackTableView::updateTrackCount,
+            Qt::UniqueConnection);
+    connect(pNewModel,
+            &QAbstractItemModel::layoutChanged,
+            this,
+            &WTrackTableView::updateTrackCount,
+            Qt::UniqueConnection);
+    updateTrackCount();
     setHorizontalHeader(pHeader);
     pHeader->setSectionsMovable(true);
     pHeader->setSectionsClickable(true);
@@ -297,6 +366,34 @@ void WTrackTableView::loadTrackModel(QAbstractItemModel* pNewModel, bool restore
                 !pHeader->hasPersistedHeaderState()) {
             //qDebug() << "Hiding column" << i;
             horizontalHeader()->hideSection(i);
+        }
+    }
+
+    // Ordem inicial das colunas visiveis. Vale apenas enquanto nao existe um
+    // layout salvo; assim que o usuario arrastar uma coluna, o estado dele passa
+    // a mandar e nunca e sobrescrito por esta ordem.
+    if (!pHeader->hasPersistedHeaderState()) {
+        const QStringList defaultColumnOrder = {
+                LIBRARYTABLE_PREVIEW,
+                LIBRARYTABLE_COVERART,
+                LIBRARYTABLE_TITLE,
+                LIBRARYTABLE_ARTIST,
+                LIBRARYTABLE_BPM,
+                LIBRARYTABLE_GENRE,
+                LIBRARYTABLE_KEY,
+        };
+        int targetVisualIndex = 0;
+        for (const auto& columnName : defaultColumnOrder) {
+            const int logicalIndex = pNewTrackModel->fieldIndex(columnName);
+            if (logicalIndex < 0) {
+                // coluna inexistente neste modelo (playlists e crates diferem)
+                continue;
+            }
+            const int visualIndex = horizontalHeader()->visualIndex(logicalIndex);
+            if (visualIndex >= 0 && visualIndex != targetVisualIndex) {
+                horizontalHeader()->moveSection(visualIndex, targetVisualIndex);
+            }
+            targetVisualIndex++;
         }
     }
 
