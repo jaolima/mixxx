@@ -10,6 +10,47 @@
 [Mixxx] is Free DJ software that gives you everything you need to perform live
 DJ mixes. Mixxx works on GNU/Linux, Windows, and macOS.
 
+## Development Quick Start
+
+Two helper scripts in the repository root configure, build and launch a development build of Mixxx with a single command.
+
+On Linux:
+
+```shell
+./dev.sh setup   # once: install the build dependencies (asks for sudo)
+./dev.sh run     # configure, compile and launch in developer mode
+```
+
+On Windows, from a plain `cmd.exe` prompt:
+
+```shell
+dev.bat setup    # once: prepare the build environment (downloads ~2.5 GB)
+dev.bat run      # configure, compile and launch in developer mode
+```
+
+Both scripts accept the same commands:
+
+| Command | Description |
+| ------- | ----------- |
+| `setup` | Install the build dependencies for this platform |
+| `configure` | Run the CMake configure step |
+| `build` | Configure if needed, then compile |
+| `run` | Build, then launch Mixxx with `--developer` |
+| `test` | Build, then run the test suite with `ctest` |
+| `clean` | Delete the build directory |
+| `shortcut` | Add a "Mixxx (dev)" entry to the application menu |
+| `doctor` | Report toolchain and build directory status |
+| `help` | List every command and environment variable |
+
+The scripts enable Ninja, ccache and a fast linker whenever those are installed, and they mirror the feature flags used by CI so a local build matches what the build workflow validates.
+The development build keeps its settings separate from a system-wide Mixxx install, so it will not touch an existing library.
+
+Arguments after the command are passed through.
+`./dev.sh run --controller-debug` forwards the flag to Mixxx, and `./dev.sh build --target mixxx-test` forwards it to `cmake --build`.
+Run `./dev.sh help` for the full list of options and environment variables such as `BUILD_DIR`, `BUILD_TYPE` and `JOBS`.
+
+For the manual build steps these scripts wrap, see [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## Quick Start
 
 To get started with Mixxx:
