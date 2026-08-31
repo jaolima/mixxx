@@ -347,6 +347,26 @@ def abrir_janela():
     janela.title("Presets do Mixxx")
     janela.minsize(720, 460)
 
+    def trazer_para_frente():
+        """Sem isto a janela nasce atras do editor/terminal e passa despercebida.
+
+        O -topmost e ligado e desligado logo em seguida: so o suficiente para
+        vir ao topo, sem ficar presa sobre as outras janelas do usuario.
+        """
+        janela.update_idletasks()
+        largura, altura = max(janela.winfo_width(), 720), max(janela.winfo_height(), 460)
+        x = (janela.winfo_screenwidth() - largura) // 2
+        y = (janela.winfo_screenheight() - altura) // 3
+        janela.geometry("{}x{}+{}+{}".format(largura, altura, max(x, 0), max(y, 0)))
+        janela.deiconify()
+        janela.lift()
+        janela.attributes("-topmost", True)
+        janela.after(400, lambda: janela.attributes("-topmost", False))
+        try:
+            janela.focus_force()
+        except tk.TclError:
+            pass  # alguns gerenciadores de janela no Linux recusam o foco forcado
+
     topo = ttk.Frame(janela, padding=(14, 12, 14, 6))
     topo.pack(fill="x")
     ttk.Label(topo, text="Qual estilo voce vai tocar?",
@@ -441,6 +461,7 @@ def abrir_janela():
     b_abrir.pack(side="right")
     botoes.extend([b_cancelar, b_aplicar, b_abrir])
 
+    trazer_para_frente()
     janela.mainloop()
     return 0
 
