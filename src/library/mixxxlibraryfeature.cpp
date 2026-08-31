@@ -76,6 +76,16 @@ MixxxLibraryFeature::MixxxLibraryFeature(Library* pLibrary,
             LIBRARYTABLE_COVERART_DIGEST,
             LIBRARYTABLE_COVERART_HASH,
             LIBRARYTABLE_WAVESUMMARYHEX};
+    // Busca livre: um termo digitado sem prefixo e procurado em todas estas
+    // colunas de uma vez.
+    //
+    // Ficam de fora de proposito:
+    // - o tom (key), porque os nomes de tonalidade sao curtos e colidem com
+    //   palavras comuns: "Am" casaria toda faixa em La menor alem das que tem
+    //   "am" no titulo ou no artista. Quem quer buscar por tonalidade usa key:.
+    // - campos puramente numericos (bpm, duracao, bitrate, avaliacao), que
+    //   comparados como texto casariam qualquer digito solto. Para eles o parser
+    //   ja oferece bpm:, duration: e rating:, com comparacao numerica de verdade.
     QStringList searchColumns = {
             LIBRARYTABLE_ARTIST,
             LIBRARYTABLE_ALBUM,
@@ -85,6 +95,10 @@ MixxxLibraryFeature::MixxxLibraryFeature(Library* pLibrary,
             LIBRARYTABLE_COMMENT,
             LIBRARYTABLE_TITLE,
             LIBRARYTABLE_GENRE,
+            LIBRARYTABLE_COMPOSER,
+            LIBRARYTABLE_YEAR,
+            LIBRARYTABLE_TRACKNUMBER,
+            LIBRARYTABLE_FILETYPE,
             LIBRARYTABLE_CRATE};
 
     QStringList qualifiedTableColumns;
