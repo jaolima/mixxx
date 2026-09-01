@@ -161,6 +161,9 @@ class WTrackTableView : public WLibraryTableView {
 
     // Signalled 20 times per second (every 50ms) by GuiTick.
     void slotGuiTick50ms(double);
+    /// Abre o menu de colunas ancorado no cabecalho da tabela,
+    /// acionado pelo botao da barra acima da biblioteca.
+    void slotShowColumnsMenu(double value);
     /// Publica em [Library],track_count quantas faixas a tabela mostra.
     void updateTrackCount();
     void slotScrollValueChanged(int);
@@ -225,6 +228,7 @@ class WTrackTableView : public WLibraryTableView {
     ControlProxy* m_pKeyNotation;
     ControlProxy* m_pSortColumn;
     ControlProxy* m_pSortOrder;
+    ControlProxy* m_pShowColumnsMenu;
 
     int m_dropRow;
 };

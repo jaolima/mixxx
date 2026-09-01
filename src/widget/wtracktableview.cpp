@@ -74,6 +74,8 @@ WTrackTableView::WTrackTableView(QWidget* pParent,
     m_pSortOrder = new ControlProxy("[Library]", "sort_order", this);
     m_pSortOrder->connectValueChanged(this, &WTrackTableView::applySortingIfVisible);
 
+    m_pShowColumnsMenu = new ControlProxy("[Library]", "show_columns_menu", this);
+    m_pShowColumnsMenu->connectValueChanged(this, &WTrackTableView::slotShowColumnsMenu);
 
     connect(this,
             &WTrackTableView::scrollValueChanged,
@@ -162,6 +164,25 @@ void WTrackTableView::updateTrackCount() {
     ControlObject::set(ConfigKey(QStringLiteral("[Library]"),
                                QStringLiteral("track_count")),
             pModel ? pModel->rowCount() : 0);
+}
+
+void WTrackTableView::slotShowColumnsMenu(double value) {
+    if (value <= 0) {
+        return;
+    }
+    // O controle e global, mas existe uma tabela por view (biblioteca, crates,
+    // playlists). Sem este teste, todas abririam o menu ao mesmo tempo e o
+    // usuario veria o menu da tabela errada.
+    if (!isVisible()) {
+        return;
+    }
+    auto* pHeader = qobject_cast<WTrackTableViewHeader*>(horizontalHeader());
+    VERIFY_OR_DEBUG_ASSERT(pHeader) {
+        return;
+    }
+    // Ancora o menu no canto inferior esquerdo do cabecalho, como se tivesse
+    // saido dele - que e de onde o menu conceitualmente pertence.
+    pHeader->popupColumnMenu(pHeader->mapToGlobal(QPoint(0, pHeader->height())));
 }
 
 void WTrackTableView::slotGuiTick50ms(double /*unused*/) {
