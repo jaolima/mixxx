@@ -2,6 +2,7 @@
 
 #include <QComboBox>
 #include <QLineEdit>
+#include <QHash>
 #include <QList>
 #include <QString>
 #include <QVBoxLayout>
@@ -36,6 +37,17 @@ struct QuickSetting {
     QList<QuickChoice> choices;
 };
 
+/// Um conjunto de valores aplicado de uma vez, por estilo musical.
+///
+/// Hip hop e house querem ajustes opostos em varias telas diferentes. Aplicar
+/// tudo de uma vez evita ter que lembrar de cada um antes de tocar.
+struct QuickPreset {
+    QString name;
+    QString description;
+    /// chave = indice em m_settings, valor = valor a gravar
+    QHash<int, QString> values;
+};
+
 /// Pagina "Essencial" das Preferencias.
 ///
 /// As Preferencias do Mixxx tem dezesseis paginas, e os ajustes que mais pesam
@@ -59,6 +71,9 @@ class DlgPrefQuick : public DlgPreferencePage {
 
   private slots:
     void slotFilterChanged(const QString& text);
+    /// Carrega um preset nas alteracoes pendentes (o usuario ainda precisa
+    /// clicar em Aplicar, e ve antes o que vai mudar).
+    void slotApplyPreset(int presetIndex);
 
   private:
     /// (Re)desenha a lista de ajustes aplicando o filtro de busca.
@@ -70,6 +85,7 @@ class DlgPrefQuick : public DlgPreferencePage {
 
     UserSettingsPointer m_pConfig;
     QList<QuickSetting> m_settings;
+    QList<QuickPreset> m_presets;
     /// Alteracoes ainda nao aplicadas, indexadas pela posicao em m_settings.
     QHash<int, QString> m_pending;
 

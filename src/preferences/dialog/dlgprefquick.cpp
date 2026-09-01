@@ -3,6 +3,8 @@
 #include <QCheckBox>
 #include <QFrame>
 #include <QGroupBox>
+#include <QHBoxLayout>
+#include <QPushButton>
 #include <QLabel>
 #include <QScrollArea>
 
@@ -221,12 +223,65 @@ QList<QuickSetting> buildCatalog() {
     return s;
 }
 
+/// Presets por estilo. Sao definidos pela chave do ajuste, e nao pela posicao
+/// na lista, para nao quebrarem em silencio quando o catalogo mudar de ordem.
+QList<QuickPreset> buildPresets(const QList<QuickSetting>& settings) {
+    struct RawPreset {
+        QString name;
+        QString description;
+        QList<QPair<QString, QString>> values; // chave -> valor
+    };
+
+    const QList<RawPreset> raw = {
+            {QObject::tr("Hip hop / rap / reggae"),
+                    QObject::tr("Cue exactly where you set it, fast crossfader "
+                                "cut for scratching, wide pitch range, and beat "
+                                "detection that tolerates tempo drift."),
+                    {{QStringLiteral("quantize"), QStringLiteral("0")},
+                            {QStringLiteral("keylock"), QStringLiteral("0")},
+                            {QStringLiteral("RateRangePercent"), QStringLiteral("16")},
+                            {QStringLiteral("xFaderCurve"), QStringLiteral("300")},
+                            {QStringLiteral("xFaderMode"), QStringLiteral("0")},
+                            {QStringLiteral("BeatDetectionFixedTempoAssumption"),
+                                    QStringLiteral("0")}}},
+            {QObject::tr("House / techno"),
+                    QObject::tr("Snap to the grid, long crossfader transition "
+                                "with steady loudness, finer pitch steps, and "
+                                "beat detection assuming a steady tempo."),
+                    {{QStringLiteral("quantize"), QStringLiteral("1")},
+                            {QStringLiteral("keylock"), QStringLiteral("1")},
+                            {QStringLiteral("RateRangePercent"), QStringLiteral("8")},
+                            {QStringLiteral("xFaderCurve"), QStringLiteral("1")},
+                            {QStringLiteral("xFaderMode"), QStringLiteral("1")},
+                            {QStringLiteral("BeatDetectionFixedTempoAssumption"),
+                                    QStringLiteral("1")}}},
+    };
+
+    QList<QuickPreset> presets;
+    for (const RawPreset& r : raw) {
+        QuickPreset preset;
+        preset.name = r.name;
+        preset.description = r.description;
+        for (const auto& pair : r.values) {
+            for (int i = 0; i < settings.size(); ++i) {
+                if (settings.at(i).key == pair.first) {
+                    preset.values.insert(i, pair.second);
+                    break;
+                }
+            }
+        }
+        presets.append(preset);
+    }
+    return presets;
+}
+
 } // anonymous namespace
 
 DlgPrefQuick::DlgPrefQuick(QWidget* pParent, UserSettingsPointer pConfig)
         : DlgPreferencePage(pParent),
           m_pConfig(pConfig),
-          m_settings(buildCatalog()) {
+          m_settings(buildCatalog()),
+          m_presets(buildPresets(m_settings)) {
     auto* pOuter = new QVBoxLayout(this);
 
     auto* pTitle = new QLabel(
@@ -243,6 +298,21 @@ DlgPrefQuick::DlgPrefQuick(QWidget* pParent, UserSettingsPointer pConfig)
             this,
             &DlgPrefQuick::slotFilterChanged);
     pOuter->addWidget(m_pSearch);
+
+    // Botoes de estilo: preenchem varios ajustes de uma vez. Nao gravam
+    // sozinhos - deixam tudo pendente para o usuario conferir e clicar em
+    // Aplicar, igual a qualquer outra mudanca desta tela.
+    auto* pPresetBox = new QGroupBox(tr("Apply a style"), this);
+    auto* pPresetLayout = new QHBoxLayout(pPresetBox);
+    for (int i = 0; i < m_presets.size(); ++i) {
+        auto* pButton = new QPushButton(m_presets.at(i).name, pPresetBox);
+        pButton->setToolTip(m_presets.at(i).description);
+        connect(pButton, &QPushButton::clicked, this, [this, i] {
+            slotApplyPreset(i);
+        });
+        pPresetLayout->addWidget(pButton);
+    }
+    pOuter->addWidget(pPresetBox);
 
     m_pCount = new QLabel(this);
     m_pCount->setEnabled(false);
@@ -399,6 +469,19 @@ void DlgPrefQuick::rebuild() {
                 new QLabel(tr("Nothing matches that search."), m_pList));
     }
     m_pCount->setText(tr("%n setting(s)", "", shown));
+}
+
+void DlgPrefQuick::slotApplyPreset(int presetIndex) {
+    if (presetIndex < 0 || presetIndex >= m_presets.size()) {
+        return;
+    }
+    const QuickPreset& preset = m_presets.at(presetIndex);
+    for (auto it = preset.values.constBegin(); it != preset.values.constEnd(); ++it) {
+        m_pending.insert(it.key(), it.value());
+    }
+    // Limpa a busca: senao o usuario ve so parte do que acabou de mudar.
+    m_pSearch->clear();
+    rebuild();
 }
 
 void DlgPrefQuick::slotUpdate() {
