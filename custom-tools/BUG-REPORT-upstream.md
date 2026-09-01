@@ -13,7 +13,7 @@ Cole o conteúdo abaixo em <https://github.com/mixxxdj/mixxx/issues/new/choose>
 ## Título sugerido
 
 ```
-Adding any unused member to the Library class causes reproducible startup crashes (heap corruption) on Windows
+Heap corruption on Windows startup: lilv writes 1 byte past a 1-byte allocation in LV2Backend
 ```
 
 ---
@@ -27,9 +27,34 @@ Adding any unused member to the Library class causes reproducible startup crashe
 
 ### Summary
 
-On `main` (2.7.0-alpha), adding a **completely unused member** to the `Library`
-class makes Mixxx crash on startup. The same build without that member starts
-cleanly every time.
+**Root cause found.** During `LV2Backend::LV2Backend()`, lilv allocates a
+**1-byte** heap block and writes 1 byte past its end. Windows Page Heap catches
+it precisely:
+
+```
+VERIFIER STOP 0000000F: corrupted suffix pattern
+    Heap block:          000002170F10EFF0
+    Block size:          1
+    corruption address:  000002170F10EFF1   <- exactly one byte past the block
+```
+
+Stack at the stop:
+
+```
+ucrtbase!free_base
+mixxx!LV2Backend::LV2Backend+0x3d
+mixxx!EffectsBackendManager::EffectsBackendManager+0x184
+mixxx!EffectsManager::EffectsManager+0x397
+mixxx!mixxx::CoreServices::initialize+0x496
+```
+
+The write itself is silent. Whether it turns fatal depends on what happens to sit
+next to that block, which is why it looks like an unrelated layout problem:
+adding a **completely unused member** to `Library` or to `SoundManagerConfig`
+takes a clean build from 0 crashes in 12 to 8 in 8.
+
+**Building with `-DLILV=OFF` fixes it.** Same inert member that gave 8/8 gives
+**0 crashes in 10** with LV2 disabled.
 
 The crash is intermittent and its rate depends on the exact layout: two variants
 of the same inert field gave 8 crashes out of 8 and 4 out of 8 respectively,
