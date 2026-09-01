@@ -125,6 +125,12 @@ class SoundManagerConfig {
     unsigned int m_audioBufferSizeIndex;
     unsigned int m_syncBuffers;
     bool m_forceNetworkClock;
+    /// Dispositivos que estavam no arquivo mas nao existiam na maquina no
+    /// momento em que ele foi lido - a controladora desconectada, por exemplo.
+    /// Guardados como XML cru para voltarem intactos ao arquivo quando ele for
+    /// regravado. Sem isto, abrir o Mixxx uma unica vez sem a controladora
+    /// apaga para sempre o roteamento dela.
+    QStringList m_absentDevicesXml;
     QMultiHash<SoundDeviceId, AudioOutput> m_outputs;
     QMultiHash<SoundDeviceId, AudioInput> m_inputs;
     int m_iNumMicInputs;

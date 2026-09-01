@@ -153,6 +153,14 @@ bool SoundManagerConfig::validateDevices() {
         QDomNodeList inElements(devElement.elementsByTagName(xmlElementInput));
 
         if (devicesMatchingByName == 0) {
+            // O dispositivo nao esta presente agora. Guardamos o trecho do XML
+            // para devolve-lo ao arquivo em writeToDisk: descartar aqui faria a
+            // configuracao dele sumir na primeira vez que o Mixxx abrisse sem
+            // ele conectado.
+            QString deviceXml;
+            QTextStream stream(&deviceXml);
+            devElement.save(stream, 0);
+            m_absentDevicesXml.append(deviceXml);
             continue;
         } else if (devicesMatchingByName == 1) {
             // There is only one device with this name, so it is unambiguous
@@ -288,6 +296,55 @@ bool SoundManagerConfig::writeToDisk() const {
             devElement.appendChild(outElement);
         }
         docElement.appendChild(devElement);
+    }
+
+    // Devolve ao arquivo os dispositivos que nao estavam presentes na leitura.
+    //
+    // Um caminho de audio (Master, Headphones...) so pode sair por um
+    // dispositivo. Se o usuario reatribuiu o Master a placa do computador
+    // enquanto a controladora estava fora, devolver o Master dela criaria dois
+    // Masters no arquivo. Por isso cada <output>/<input> preservado so volta se
+    // o par type+index dele nao estiver em uso por um dispositivo ativo.
+    QSet<QString> pathsInUse;
+    for (auto it = m_outputs.constBegin(); it != m_outputs.constEnd(); ++it) {
+        pathsInUse.insert(AudioPath::getStringFromType(it.value().getType()) +
+                QChar('/') + QString::number(it.value().getIndex()));
+    }
+    for (auto it = m_inputs.constBegin(); it != m_inputs.constEnd(); ++it) {
+        pathsInUse.insert(AudioPath::getStringFromType(it.value().getType()) +
+                QChar('/') + QString::number(it.value().getIndex()));
+    }
+
+    for (const QString& deviceXml : m_absentDevicesXml) {
+        QDomDocument parsed;
+        if (!parsed.setContent(deviceXml)) {
+            continue;
+        }
+        QDomElement absentElement = parsed.documentElement();
+
+        for (const QString& tag : {xmlElementOutput, xmlElementInput}) {
+            const QDomNodeList paths = absentElement.elementsByTagName(tag);
+            QList<QDomNode> toRemove;
+            for (int i = 0; i < paths.count(); ++i) {
+                const QDomElement path = paths.at(i).toElement();
+                const QString id = path.attribute(QStringLiteral("type")) +
+                        QChar('/') + path.attribute(QStringLiteral("index"));
+                if (pathsInUse.contains(id)) {
+                    toRemove.append(paths.at(i));
+                }
+            }
+            for (const QDomNode& node : toRemove) {
+                absentElement.removeChild(node);
+            }
+        }
+
+        // Um dispositivo que ficou sem nenhum caminho nao tem mais o que
+        // preservar.
+        if (absentElement.elementsByTagName(xmlElementOutput).isEmpty() &&
+                absentElement.elementsByTagName(xmlElementInput).isEmpty()) {
+            continue;
+        }
+        docElement.appendChild(doc.importNode(absentElement, true));
     }
 
     QFile file(m_configFile.absoluteFilePath());
