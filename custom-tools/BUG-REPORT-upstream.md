@@ -101,17 +101,36 @@ early and only surfaces later, somewhere unrelated.
 - **Not the hardware setup.** Reproduced with a DDJ-FLX4 both connected and
   disconnected.
 
-### What I could not do
+### I tried AddressSanitizer, and it does not catch this
 
-I did not find the offending write. AddressSanitizer would likely pin it down,
-but `CMakeLists.txt` refuses sanitizers under MSVC:
+Worth reporting so nobody repeats the attempt. MSVC 2022 does support
+`/fsanitize=address` and ships the runtime, so an instrumented build is possible
+even though `CMakeLists.txt` rejects sanitizers outright under MSVC:
 
 ```
 message(FATAL_ERROR "Sanitizers are only available on Clang or GCC")
 ```
 
-A clang-cl + ASan build, or Windows PageHeap under a debugger, would be the next
-step. I don't have the Debugging Tools installed on this machine.
+Passing the flag through `CMAKE_CXX_FLAGS` works, with two caveats: the Visual
+Studio generator needs `CMAKE_CONFIGURATION_TYPES` pinned to one config (the WiX
+packaging step fails otherwise), and `QML=OFF` is required — MSVC hits an
+internal compiler error (C1001) on `mixxx-qml-lib_autogen` with ASan on.
+
+**The resulting build does not reproduce the crash.** With the inert field
+applied and ASan active, 4 out of 4 launches reached the full UI and exited
+cleanly, and ASan reported nothing. The likely reason is that ASan's redzones
+change the very object layout this bug depends on, so instrumenting it hides it.
+
+One report does appear, and it is a **false positive**: a `container-overflow`
+inside `Waveform::readByteArray` (`src/waveform/waveform.cpp:161`) through
+`protobuf::RepeatedField<float>::GrowNoAnnotate`. `container-overflow` requires
+every module to be instrumented, and `libprotobuf-lite.dll` comes prebuilt from
+vcpkg. It disappears with `detect_container_overflow=0`, and no real error takes
+its place.
+
+So the next step is probably **not** ASan. Windows PageHeap under a debugger, or
+a Linux build with ASan where the dependencies are instrumented too, look more
+promising. I don't have the Debugging Tools installed on this machine.
 
 ### Environment
 
