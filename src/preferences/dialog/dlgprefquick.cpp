@@ -6,6 +6,11 @@
 #include <QHBoxLayout>
 #include <QPushButton>
 #include <QLabel>
+#include <QDir>
+#include <QFile>
+#include <QInputDialog>
+#include <QMessageBox>
+#include <QRegularExpression>
 #include <QScrollArea>
 
 #include "moc_dlgprefquick.cpp"
@@ -314,6 +319,27 @@ DlgPrefQuick::DlgPrefQuick(QWidget* pParent, UserSettingsPointer pConfig)
     }
     pOuter->addWidget(pPresetBox);
 
+    // Perfis de audio. Existem porque um caminho de audio so pode sair por um
+    // dispositivo: ao apontar o Master para a placa do computador, o Master da
+    // controladora e liberado. Guardar o conjunto sob um nome evita remontar o
+    // roteamento a cada troca entre tocar fora e usar so o computador.
+    auto* pAudioBox = new QGroupBox(tr("Audio profiles"), this);
+    auto* pAudioLayout = new QHBoxLayout(pAudioBox);
+    m_pAudioProfiles = new QComboBox(pAudioBox);
+    setScrollSafeGuard(m_pAudioProfiles);
+    pAudioLayout->addWidget(m_pAudioProfiles, 1);
+    auto* pLoad = new QPushButton(tr("Load"), pAudioBox);
+    auto* pSave = new QPushButton(tr("Save current as..."), pAudioBox);
+    auto* pDelete = new QPushButton(tr("Delete"), pAudioBox);
+    connect(pLoad, &QPushButton::clicked, this, &DlgPrefQuick::slotLoadAudioProfile);
+    connect(pSave, &QPushButton::clicked, this, &DlgPrefQuick::slotSaveAudioProfile);
+    connect(pDelete, &QPushButton::clicked, this, &DlgPrefQuick::slotDeleteAudioProfile);
+    pAudioLayout->addWidget(pLoad);
+    pAudioLayout->addWidget(pSave);
+    pAudioLayout->addWidget(pDelete);
+    pOuter->addWidget(pAudioBox);
+    refreshAudioProfiles();
+
     m_pCount = new QLabel(this);
     m_pCount->setEnabled(false);
     pOuter->addWidget(m_pCount);
@@ -469,6 +495,104 @@ void DlgPrefQuick::rebuild() {
                 new QLabel(tr("Nothing matches that search."), m_pList));
     }
     m_pCount->setText(tr("%n setting(s)", "", shown));
+}
+
+QDir DlgPrefQuick::audioProfileDir() const {
+    QDir dir(m_pConfig->getSettingsPath());
+    if (!dir.exists(QStringLiteral("audio_profiles"))) {
+        dir.mkdir(QStringLiteral("audio_profiles"));
+    }
+    dir.cd(QStringLiteral("audio_profiles"));
+    return dir;
+}
+
+void DlgPrefQuick::refreshAudioProfiles() {
+    m_pAudioProfiles->clear();
+    const QStringList files =
+            audioProfileDir().entryList({QStringLiteral("*.xml")}, QDir::Files, QDir::Name);
+    for (const QString& file : files) {
+        QString name = file;
+        name.chop(4); // ".xml"
+        m_pAudioProfiles->addItem(name);
+    }
+    if (m_pAudioProfiles->count() == 0) {
+        m_pAudioProfiles->addItem(tr("(no profiles saved)"));
+        m_pAudioProfiles->setEnabled(false);
+    } else {
+        m_pAudioProfiles->setEnabled(true);
+    }
+}
+
+void DlgPrefQuick::slotSaveAudioProfile() {
+    const QString source = QDir(m_pConfig->getSettingsPath())
+                                   .absoluteFilePath(QStringLiteral("soundconfig.xml"));
+    if (!QFile::exists(source)) {
+        QMessageBox::warning(this,
+                tr("Nothing to save"),
+                tr("There is no sound configuration yet. Set up your outputs in "
+                   "the Sound Hardware page first."));
+        return;
+    }
+    bool ok = false;
+    const QString name = QInputDialog::getText(this,
+            tr("Save audio profile"),
+            tr("Name for this setup (for example: controller, laptop):"),
+            QLineEdit::Normal,
+            QString(),
+            &ok)
+                                 .trimmed();
+    if (!ok || name.isEmpty()) {
+        return;
+    }
+    // Evita que um nome digitado escape da pasta de perfis.
+    const QString safe = QString(name).replace(QRegularExpression(
+                                                       QStringLiteral("[^\w \-]")),
+            QString());
+    if (safe.isEmpty()) {
+        return;
+    }
+    const QString target = audioProfileDir().absoluteFilePath(safe + QStringLiteral(".xml"));
+    QFile::remove(target);
+    if (QFile::copy(source, target)) {
+        refreshAudioProfiles();
+        m_pAudioProfiles->setCurrentText(safe);
+    }
+}
+
+void DlgPrefQuick::slotLoadAudioProfile() {
+    if (!m_pAudioProfiles->isEnabled()) {
+        return;
+    }
+    const QString source = audioProfileDir().absoluteFilePath(
+            m_pAudioProfiles->currentText() + QStringLiteral(".xml"));
+    if (!QFile::exists(source)) {
+        return;
+    }
+    const QString target = QDir(m_pConfig->getSettingsPath())
+                                   .absoluteFilePath(QStringLiteral("soundconfig.xml"));
+    QFile::remove(target);
+    if (QFile::copy(source, target)) {
+        // O SoundManager le esse arquivo na inicializacao; trocar o audio com o
+        // motor rodando exigiria para-lo e recria-lo, o que nao vale o risco
+        // aqui. Avisar e mais honesto do que aplicar pela metade.
+        QMessageBox::information(this,
+                tr("Profile loaded"),
+                tr("The audio profile will take effect the next time Mixxx starts."));
+    }
+}
+
+void DlgPrefQuick::slotDeleteAudioProfile() {
+    if (!m_pAudioProfiles->isEnabled()) {
+        return;
+    }
+    const QString name = m_pAudioProfiles->currentText();
+    if (QMessageBox::question(this,
+                tr("Delete profile"),
+                tr("Delete the audio profile \"%1\"?").arg(name)) != QMessageBox::Yes) {
+        return;
+    }
+    QFile::remove(audioProfileDir().absoluteFilePath(name + QStringLiteral(".xml")));
+    refreshAudioProfiles();
 }
 
 void DlgPrefQuick::slotApplyPreset(int presetIndex) {

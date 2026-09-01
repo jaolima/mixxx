@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QComboBox>
+#include <QDir>
 #include <QLineEdit>
 #include <QHash>
 #include <QList>
@@ -71,6 +72,11 @@ class DlgPrefQuick : public DlgPreferencePage {
 
   private slots:
     void slotFilterChanged(const QString& text);
+    /// Guarda a configuracao de audio atual sob um nome.
+    void slotSaveAudioProfile();
+    /// Devolve um perfil salvo ao soundconfig.xml.
+    void slotLoadAudioProfile();
+    void slotDeleteAudioProfile();
     /// Carrega um preset nas alteracoes pendentes (o usuario ainda precisa
     /// clicar em Aplicar, e ve antes o que vai mudar).
     void slotApplyPreset(int presetIndex);
@@ -93,4 +99,9 @@ class DlgPrefQuick : public DlgPreferencePage {
     QWidget* m_pList;
     QVBoxLayout* m_pListLayout;
     QLabel* m_pCount;
+    /// Perfis de audio: alternar entre tocar com a controladora e usar so o
+    /// computador sem remontar o roteamento na mao toda vez.
+    QComboBox* m_pAudioProfiles;
+    void refreshAudioProfiles();
+    QDir audioProfileDir() const;
 };
