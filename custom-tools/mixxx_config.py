@@ -38,7 +38,8 @@ from mixxx_preset import (  # noqa: E402
 # a maioria estado interno (tamanho de janela, ultima pasta aberta) que nao faz
 # sentido editar aqui.
 
-CATEGORIAS = ["Decks", "Mixer", "Analise", "Biblioteca", "Controlador", "Audio"]
+CATEGORIAS = ["Decks", "Mixer", "Analise", "Biblioteca", "Waveform",
+              "Auto DJ", "Gravacao", "Controlador", "Audio"]
 
 OPCOES = [
     # --- Decks ---------------------------------------------------------------
@@ -218,7 +219,84 @@ OPCOES = [
         "ajuda": "Define o estado inicial. Durante o set, o botao JOG na barra "
                  "superior alterna a qualquer momento.",
     },
+    # --- Waveform ------------------------------------------------------------
+    {
+        "cat": "Waveform", "rotulo": "Aviso de fim de faixa",
+        "busca": "alerta piscar tempo restante fim",
+        "secao": "[Waveform]", "chave": "EndOfTrackWarningTime",
+        "tipo": "escolha", "padrao": "30",
+        "opcoes": [("15", "15 segundos"), ("30", "30 segundos  (padrao)"),
+                   ("45", "45 segundos"), ("60", "1 minuto"), ("0", "Desligado")],
+        "ajuda": "Quantos segundos antes do fim a waveform comeca a piscar. E o "
+                 "aviso de que voce precisa engatar a proxima - com o fone no "
+                 "ouvido e barulho na pista, e o que salva de deixar o silencio "
+                 "entrar.",
+    },
+    {
+        "cat": "Waveform", "rotulo": "Zoom padrao da waveform",
+        "secao": "[Waveform]", "chave": "DefaultZoom",
+        "tipo": "escolha", "padrao": "3",
+        "opcoes": [("1", "1 - bem aproximado"), ("2", "2"), ("3", "3  (padrao)"),
+                   ("4", "4"), ("6", "6 - visao ampla")],
+        "ajuda": "Aproximado mostra o detalhe da batida, util para alinhar no "
+                 "scratch. Ampliado mostra mais da musica de uma vez.",
+    },
+    {
+        "cat": "Waveform", "rotulo": "Sincronizar com a tela (VSync)",
+        "secao": "[Waveform]", "chave": "VSync",
+        "tipo": "bool", "padrao": "0",
+        "ajuda": "Alinha o desenho da waveform com a atualizacao do monitor. Deixa "
+                 "mais suave, mas custa CPU - e CPU disputada e o que causa estalo "
+                 "no audio com buffer baixo.",
+    },
+
+    # --- Auto DJ -------------------------------------------------------------
+    {
+        "cat": "Auto DJ", "rotulo": "Duracao da transicao",
+        "busca": "automatico crossfade tempo",
+        "secao": "[Auto DJ]", "chave": "Transition",
+        "tipo": "escolha", "padrao": "10",
+        "opcoes": [("0", "Corte seco"), ("4", "4 segundos"),
+                   ("10", "10 segundos  (padrao)"), ("20", "20 segundos"),
+                   ("30", "30 segundos")],
+        "ajuda": "Quanto tempo o Auto DJ leva passando de uma faixa para a outra.",
+    },
+    {
+        "cat": "Auto DJ", "rotulo": "Devolver a faixa a fila",
+        "secao": "[Auto DJ]", "chave": "Requeue",
+        "tipo": "bool", "padrao": "0",
+        "ajuda": "Depois de tocar, manda a musica de volta para o fim da fila em vez "
+                 "de remove-la. Faz a lista tocar em loop indefinidamente.",
+    },
+
+    # --- Gravacao ------------------------------------------------------------
+    {
+        "cat": "Gravacao", "rotulo": "Formato da gravacao",
+        "busca": "gravar set mp3 wav flac",
+        "secao": "[Recording]", "chave": "Encoding",
+        "tipo": "escolha", "padrao": "WAV",
+        "opcoes": [("WAV", "WAV - sem perda, arquivo grande"),
+                   ("FLAC", "FLAC - sem perda, comprimido"),
+                   ("AIFF", "AIFF - sem perda"),
+                   ("MP3", "MP3 - com perda, arquivo pequeno"),
+                   ("OGG", "OGG - com perda")],
+        "ajuda": "Formato do arquivo ao gravar o set. WAV nao perde nada mas ocupa "
+                 "cerca de 600 MB por hora; FLAC guarda o mesmo audio na metade do "
+                 "espaco; MP3 serve para publicar.",
+    },
+
+    # --- Mixer (normalizacao) -----------------------------------------------
+    {
+        "cat": "Mixer", "rotulo": "Normalizar volume (ReplayGain)",
+        "busca": "volume ganho igualar loudness",
+        "secao": "[ReplayGain]", "chave": "ReplayGainEnabled",
+        "tipo": "bool", "padrao": "1",
+        "ajuda": "Iguala o volume percebido entre faixas de origens diferentes. Sem "
+                 "isso, um vinil ripado entra bem mais baixo que um lancamento "
+                 "moderno, e voce corrige no ganho as pressas.",
+    },
 ]
+
 
 
 def texto_busca(opcao):
