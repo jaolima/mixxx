@@ -184,6 +184,69 @@ AJUSTES = [
 ]
 
 
+# --- Perfis de audio ---------------------------------------------------------
+# O Mixxx DESCARTA do soundconfig.xml qualquer dispositivo que nao esteja
+# presente na hora em que abre, e regrava o arquivo sem ele:
+#
+#     if (devicesMatchingByName == 0) { continue; }
+#     -- src/soundio/soundmanagerconfig.cpp
+#
+# Ou seja, abrir uma unica vez sem a controladora apaga o roteamento dela para
+# sempre. Guardamos os perfis aqui justamente para poder devolve-los.
+
+SOUND_XML = settings_dir() / "soundconfig.xml"
+
+PERFIS_AUDIO = {
+    "flx4": {
+        "descricao": "DDJ-FLX4 - Master 1-2 e Fone 3-4",
+        "dispositivo": "Linha (2- DDJ-FLX4)",
+        "samplerate": "48000",
+        # indice 3 = ~5 ms, em AudioBufferSizeIndex (soundmanagerconfig.h)
+        "latency": "3",
+        "saidas": [("Master", "0"), ("Headphones", "2")],
+    },
+    "notebook": {
+        "descricao": "Alto-falantes do notebook - sem pre-escuta",
+        "dispositivo": "Altofalantes (Realtek(R) Audio)",
+        "samplerate": "48000",
+        # buffer maior: sem controladora nao ha scratch, e sobra estabilidade
+        "latency": "5",
+        # A placa do notebook expoe um par estereo so, entao nao da para separar
+        # a pre-escuta - sai tudo pelo Master.
+        "saidas": [("Master", "0")],
+    },
+}
+
+
+def escrever_audio(nome):
+    """Grava o soundconfig.xml com o perfil escolhido."""
+    perfil = PERFIS_AUDIO[nome]
+    linhas = ["<!DOCTYPE SoundManagerConfig>",
+              '<SoundManagerConfig api="Windows WASAPI" deck_count="4"'
+              ' force_network_clock="0" latency="{}" samplerate="{}"'
+              ' sync_buffers="2">'.format(perfil["latency"], perfil["samplerate"]),
+              ' <SoundDevice name="{}">'.format(perfil["dispositivo"])]
+    for tipo, canal in perfil["saidas"]:
+        linhas.append('  <output channel="{}" channel_count="2" index="0"'
+                      ' type="{}"/>'.format(canal, tipo))
+    linhas += [" </SoundDevice>", "</SoundManagerConfig>", ""]
+    SOUND_XML.write_text("\n".join(linhas), encoding="utf-8")
+    return perfil
+
+
+def audio_atual():
+    """Qual perfil o soundconfig.xml descreve hoje. 'vazio' se o Mixxx o zerou."""
+    if not SOUND_XML.exists():
+        return None
+    texto = SOUND_XML.read_text(encoding="utf-8", errors="replace")
+    for nome, perfil in PERFIS_AUDIO.items():
+        if perfil["dispositivo"] in texto:
+            return nome
+    if "<SoundDevice" not in texto:
+        return "vazio"
+    return None
+
+
 # --- Leitura e escrita do mixxx.cfg ------------------------------------------
 # Formato: linha "[Secao]" seguida de linhas "chave valor" (o primeiro espaco separa).
 
@@ -354,11 +417,22 @@ def imprimir_status():
         print("  {:<24} {}".format(
             ajuste["rotulo"] + ":",
             texto_valor(ajuste, valor_efetivo(dados, ajuste), ausente)))
+    som = audio_atual()
+    if som == "vazio":
+        rotulo = "NENHUMA - o Mixxx apagou (abriu sem o dispositivo)"
+    elif som:
+        rotulo = PERFIS_AUDIO[som]["descricao"]
+    else:
+        rotulo = "configurada fora destes perfis"
+    print("  {:<24} {}".format("Saida de audio:", rotulo))
+
     print()
     if ativo:
         print("  => preset ativo: {}".format(ativo))
     else:
         print("  => configuracao mista (nao corresponde a um preset inteiro)")
+    if som == "vazio":
+        print("  => sem saida de audio: rode  --audio notebook  ou  --audio flx4")
     print()
 
 
@@ -517,11 +591,25 @@ def main():
                    help="imprime a configuracao atual e sai")
     p.add_argument("--no-launch", action="store_true",
                    help="aplica sem abrir o Mixxx em seguida")
+    p.add_argument("--audio", choices=sorted(PERFIS_AUDIO),
+                   help="troca a saida de audio (flx4 ou notebook) e sai")
     args = p.parse_args()
 
     for stream in (sys.stdout, sys.stderr):
         if hasattr(stream, "reconfigure"):
             stream.reconfigure(encoding="utf-8", errors="replace")
+
+    if args.audio:
+        if mixxx_rodando():
+            print("Fechando o Mixxx (ele reescreve a config de audio ao sair)...")
+            if not fechar_mixxx():
+                raise SystemExit("O Mixxx nao fechou. Feche-o e tente de novo.")
+        perfil = escrever_audio(args.audio)
+        print("Saida de audio: {}".format(perfil["descricao"]))
+        if len(perfil["saidas"]) == 1:
+            print("Atencao: este perfil nao tem pre-escuta - o botao CUE do fone")
+            print("nao vai isolar a faixa, porque ha um par estereo so.")
+        return 0
 
     if args.status:
         imprimir_status()
