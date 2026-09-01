@@ -796,26 +796,33 @@ PioneerDDJFLX4.samplerPlayOutputCallbackFunction = function(value, group, _contr
     }
 };
 
-PioneerDDJFLX4.padModeKeyPressed = function(_channel, _control, value, _status, _group) {
-    const deck = (_status === 0x90 ? PioneerDDJFLX4.lights.deck1 : PioneerDDJFLX4.lights.deck2);
+// Modo de pad -> valor publicado em [ChannelN],pad_mode, na mesma ordem
+// declarada em basetrackplayer.cpp. E o que permite a tela mostrar qual modo
+// esta ativo, como fazem outros softwares de DJ.
+PioneerDDJFLX4.padModes = {
+    0x1B: {light: "hotcueMode", value: 0},
+    0x6D: {light: "beatLoopMode", value: 1},
+    0x20: {light: "beatJumpMode", value: 2},
+    0x22: {light: "samplerMode", value: 3},
+    0x69: {light: "keyboardMode", value: 4},
+    0x6F: {light: "keyShiftMode", value: 5},
+    0x1E: {light: "padFX1Mode", value: 6},
+    0x6B: {light: "padFX2Mode", value: 7},
+};
 
-    if (_control === 0x1B) {
-        PioneerDDJFLX4.toggleLight(deck.hotcueMode, true);
-    } else if (_control === 0x69) {
-        PioneerDDJFLX4.toggleLight(deck.keyboardMode, true);
-    } else if (_control === 0x1E) {
-        PioneerDDJFLX4.toggleLight(deck.padFX1Mode, true);
-    } else if (_control === 0x6B) {
-        PioneerDDJFLX4.toggleLight(deck.padFX2Mode, true);
-    } else if (_control === 0x20) {
-        PioneerDDJFLX4.toggleLight(deck.beatJumpMode, true);
-    } else if (_control === 0x6D) {
-        PioneerDDJFLX4.toggleLight(deck.beatLoopMode, true);
-    } else if (_control === 0x22) {
-        PioneerDDJFLX4.toggleLight(deck.samplerMode, true);
-    } else if (_control === 0x6F) {
-        PioneerDDJFLX4.toggleLight(deck.keyShiftMode, true);
+PioneerDDJFLX4.padModeKeyPressed = function(_channel, _control, value, _status, _group) {
+    const isDeck1 = _status === 0x90;
+    const deck = (isDeck1 ? PioneerDDJFLX4.lights.deck1 : PioneerDDJFLX4.lights.deck2);
+    const mode = PioneerDDJFLX4.padModes[_control];
+    if (mode === undefined) {
+        return;
     }
+
+    PioneerDDJFLX4.toggleLight(deck[mode.light], true);
+
+    // Espelha o modo na interface. O controle e criado pelo Mixxx (um script
+    // nao pode criar controles), aqui apenas escrevemos nele.
+    engine.setValue(isDeck1 ? "[Channel1]" : "[Channel2]", "pad_mode", mode.value);
 };
 
 PioneerDDJFLX4.samplerPadPressed = function(_channel, _control, value, _status, group) {

@@ -84,6 +84,12 @@ BaseTrackPlayerImpl::BaseTrackPlayerImpl(
             &BaseTrackPlayerImpl::noVinylControlInputConfigured);
 
     m_pEject = std::make_unique<ControlPushButton>(ConfigKey(getGroup(), "eject"));
+
+    // 0 hotcue, 1 beatloop, 2 beatjump, 3 sampler, 4 keyboard,
+    // 5 keyshift, 6 padfx1, 7 padfx2 - a mesma ordem usada pelo
+    // mapeamento da controladora ao publicar o modo.
+    m_pPadMode = std::make_unique<ControlObject>(
+            ConfigKey(getGroup(), QStringLiteral("pad_mode")));
     connect(m_pEject.get(),
             &ControlObject::valueChanged,
             this,

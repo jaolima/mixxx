@@ -54,6 +54,9 @@
 
               <Template src="skins:LateNight/decks/row_5_transportLoopJump.xml" />
 
+              <!-- Performance pads, com o modo ativo espelhado da controladora -->
+              <Template src="skins:LateNight/decks/pad_section.xml" />
+
             </Children>
           </WidgetGroup><!-- DeckRows12345 -->
 
