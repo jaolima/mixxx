@@ -206,5 +206,9 @@ class Library: public QObject {
     QFont m_trackTableFont;
     int m_iTrackTableRowHeight;
     bool m_editMetadataSelectedClick;
+    /// Numero de faixas visiveis na tabela atual, ja considerando a busca.
+    /// Exposto como controle para a skin poder mostra-lo com um <Number>,
+    /// sem precisar de um widget dedicado.
+    std::unique_ptr<ControlObject> m_pTrackCount;
     std::unique_ptr<ControlObject> m_pKeyNotation;
 };

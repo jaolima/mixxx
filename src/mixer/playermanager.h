@@ -17,6 +17,7 @@
 class Auxiliary;
 class BaseTrackPlayer;
 class ControlObject;
+class ControlPushButton;
 class Deck;
 class EffectsManager;
 class EngineMixer;
@@ -296,6 +297,10 @@ class PlayerManager : public PlayerManagerInterface {
     std::unique_ptr<ControlObject> m_pCONumPreviewDecks;
     std::unique_ptr<ControlObject> m_pCONumMicrophones;
     std::unique_ptr<ControlObject> m_pCONumAuxiliaries;
+    /// Jog wheel: vinyl (scratch) x CD (pitch bend). Vive aqui por ser um estado
+    /// global da sessao, exposto para que a skin possa ter um botao e o script do
+    /// controlador possa reagir - nao ha como um script criar um controle.
+    std::unique_ptr<ControlPushButton> m_pCOJogVinylMode;
     parented_ptr<ControlProxy> m_pAutoDjEnabled;
 
     TrackAnalysisScheduler::Pointer m_pTrackAnalysisScheduler;

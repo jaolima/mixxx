@@ -35,6 +35,11 @@ class WLibrarySidebar : public QTreeView, public WBaseWidget {
     void selectChildIndex(const QModelIndex&, bool selectItem = true);
     void slotSetFont(const QFont& font);
     void slotSetExpandOnHoverDelay(int delay);
+    /// Filtra a arvore lateral pelo texto digitado, escondendo os itens que
+    /// nao casam. Um item permanece visivel se ele proprio casa ou se tem
+    /// algum descendente que casa - senao a pasta procurada sumiria junto
+    /// com o galho que leva ate ela.
+    void slotFilterTree(const QString& text);
 
   signals:
     void rightClicked(const QPoint&, const QModelIndex&);

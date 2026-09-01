@@ -113,6 +113,8 @@ class WSearchLineEdit : public QComboBox, public WBaseWidget {
 
     parented_ptr<QCompleter> m_completer;
     parented_ptr<QToolButton> const m_clearButton;
+    /// Lupa exibida a esquerda do campo, quando a skin define <Icon>.
+    QAction* m_pSearchIconAction{};
 
     QTimer m_debouncingTimer;
     QTimer m_saveTimer;

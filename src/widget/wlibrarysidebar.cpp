@@ -1,5 +1,7 @@
 #include "widget/wlibrarysidebar.h"
 
+#include <functional>
+
 #include <QHeaderView>
 #include <QUrl>
 #include <QtDebug>
@@ -499,3 +501,73 @@ void WLibrarySidebar::slotSetFont(const QFont& font) {
 void WLibrarySidebar::slotSetExpandOnHoverDelay(int delay) {
     m_hoverExpandDelay = delay;
 }
+
+namespace {
+
+/// Esconde os itens que nao casam com o texto e devolve true se algo restou
+/// visivel abaixo (ou no proprio) deste indice.
+///
+/// Usamos setRowHidden na propria view em vez de um proxy model porque a
+/// sidebar depende de indices do SidebarModel para selecao, expansao e
+/// arrastar-e-soltar; interpor um proxy quebraria os tres.
+///
+/// A expansao NAO acontece aqui. A arvore de pastas e preenchida sob demanda
+/// (BrowseFeature::onLazyChildExpandation), entao expandir insere linhas no
+/// modelo - e fazer isso no meio da varredura invalidaria os indices que ainda
+/// estamos percorrendo. Os candidatos sao anotados e expandidos depois.
+bool filterBranch(QTreeView* pView,
+        const QAbstractItemModel* pModel,
+        const QModelIndex& parent,
+        const QString& text,
+        QList<QPersistentModelIndex>* pToExpand) {
+    bool anyVisible = false;
+    const int rows = pModel->rowCount(parent);
+    for (int row = 0; row < rows; ++row) {
+        const QModelIndex index = pModel->index(row, 0, parent);
+        const bool selfMatches =
+                index.data(Qt::DisplayRole).toString().contains(text, Qt::CaseInsensitive);
+        // Precisa descer sempre: um filho pode casar mesmo com o pai fora.
+        const bool childMatches = filterBranch(pView, pModel, index, text, pToExpand);
+        const bool visible = selfMatches || childMatches;
+        pView->setRowHidden(row, parent, !visible);
+        if (visible && childMatches) {
+            pToExpand->append(QPersistentModelIndex(index));
+        }
+        anyVisible = anyVisible || visible;
+    }
+    return anyVisible;
+}
+
+} // anonymous namespace
+
+void WLibrarySidebar::slotFilterTree(const QString& text) {
+    const QAbstractItemModel* pModel = model();
+    if (!pModel) {
+        return;
+    }
+    const QString trimmed = text.trimmed();
+    if (trimmed.isEmpty()) {
+        // Busca vazia: tudo volta a aparecer, sem forcar expansao.
+        std::function<void(const QModelIndex&)> unhideAll =
+                [this, pModel, &unhideAll](const QModelIndex& parent) {
+                    const int rows = pModel->rowCount(parent);
+                    for (int row = 0; row < rows; ++row) {
+                        setRowHidden(row, parent, false);
+                        unhideAll(pModel->index(row, 0, parent));
+                    }
+                };
+        unhideAll(QModelIndex());
+        return;
+    }
+
+    QList<QPersistentModelIndex> toExpand;
+    filterBranch(this, pModel, QModelIndex(), trimmed, &toExpand);
+    // Agora sim: abrir o caminho ate o que casou. Indices persistentes porque
+    // cada expansao pode alterar o modelo e mover os seguintes.
+    for (const QPersistentModelIndex& index : toExpand) {
+        if (index.isValid()) {
+            expand(index);
+        }
+    }
+}
+

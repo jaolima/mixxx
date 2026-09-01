@@ -4,6 +4,7 @@
 
 #include "audio/types.h"
 #include "control/controlobject.h"
+#include "control/controlpushbutton.h"
 #include "effects/effectsmanager.h"
 #include "engine/channels/enginedeck.h"
 #include "engine/enginemixer.h"
@@ -115,7 +116,14 @@ PlayerManager::PlayerManager(UserSettingsPointer pConfig,
                   ConfigKey(kAppGroup, QStringLiteral("num_microphones")), true, true)),
           m_pCONumAuxiliaries(std::make_unique<ControlObject>(
                   ConfigKey(kAppGroup, QStringLiteral("num_auxiliaries")), true, true)),
+          m_pCOJogVinylMode(std::make_unique<ControlPushButton>(
+                  ConfigKey(kAppGroup, QStringLiteral("jog_vinyl_mode")))),
           m_pTrackAnalysisScheduler(TrackAnalysisScheduler::NullPointer()) {
+    // Vinyl ligado e o padrao: e o comportamento que os mapeamentos de
+    // controlador ja assumiam antes deste controle existir.
+    m_pCOJogVinylMode->setButtonMode(mixxx::control::ButtonMode::Toggle);
+    m_pCOJogVinylMode->setStates(2);
+    m_pCOJogVinylMode->set(1.0);
     m_pCONumDecks->addAlias(ConfigKey(kLegacyGroup, QStringLiteral("num_decks")));
     m_pCONumDecks->connectValueChangeRequest(this,
             &PlayerManager::slotChangeNumDecks, Qt::DirectConnection);

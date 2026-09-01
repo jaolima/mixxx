@@ -7,6 +7,20 @@
         <manual>pioneer_ddj_FLX4</manual>
         <forums>https://mixxx.discourse.group/t/pioneer-ddj-flx4</forums>
     </info>
+    <settings>
+        <group label="Jog wheel">
+            <option variable="vinyl_mode" type="boolean" default="true"
+                    label="Vinyl mode (scratch)">
+                <description>
+                    Ligado: tocar no topo do prato agarra o audio, como um vinil -
+                    e o modo para scratch, usado em hip hop e turntablism.
+                    Desligado: o prato so adianta ou atrasa a musica (pitch bend),
+                    sem parar a reproducao - o modo CD, mais adequado a house e
+                    techno. Pode ser alternado durante o set pelo botao mapeado.
+                </description>
+            </option>
+        </group>
+    </settings>
     <controller id="DDJ-FLX4">
         <scriptfiles>
             <file functionprefix="PioneerDDJFLX4" filename="Pioneer-DDJ-FLX4-script.js"/>

@@ -1,0 +1,114 @@
+<!--
+  Secao de performance pads de um deck.
+
+  A faixa superior mostra qual modo esta ativo na controladora. O modo e lido de
+  [ChannelN],pad_mode, que o mapeamento publica quando um dos botoes de modo e
+  pressionado - e o que faz a tela acompanhar o hardware.
+
+  Sao oito rotulos empilhados, um por modo, cada um visivel apenas quando o valor
+  corresponde ao seu. A skin nao tem um widget que traduza numero em texto, mas
+  tem o transform IsEqual, que resolve o mesmo problema.
+
+  Variaveis: Group (ex.: [Channel1])
+-->
+<Template>
+  <WidgetGroup>
+    <ObjectName>PadSection</ObjectName>
+    <Layout>vertical</Layout>
+    <SizePolicy>max,min</SizePolicy>
+    <Children>
+
+      <WidgetGroup><!-- faixa do modo ativo -->
+        <ObjectName>PadModeBar</ObjectName>
+        <Layout>stacked</Layout>
+        <SizePolicy>me,f</SizePolicy>
+        <MinimumSize>108,18</MinimumSize>
+        <MaximumSize>,18</MaximumSize>
+        <Children>
+
+          <Template src="skins:LateNight/decks/pad_mode_label.xml">
+            <SetVariable name="value">0</SetVariable>
+            <SetVariable name="label">HOT CUES</SetVariable>
+          </Template>
+          <Template src="skins:LateNight/decks/pad_mode_label.xml">
+            <SetVariable name="value">1</SetVariable>
+            <SetVariable name="label">BEAT LOOP</SetVariable>
+          </Template>
+          <Template src="skins:LateNight/decks/pad_mode_label.xml">
+            <SetVariable name="value">2</SetVariable>
+            <SetVariable name="label">BEAT JUMP</SetVariable>
+          </Template>
+          <Template src="skins:LateNight/decks/pad_mode_label.xml">
+            <SetVariable name="value">3</SetVariable>
+            <SetVariable name="label">SAMPLER</SetVariable>
+          </Template>
+          <Template src="skins:LateNight/decks/pad_mode_label.xml">
+            <SetVariable name="value">4</SetVariable>
+            <SetVariable name="label">KEYBOARD</SetVariable>
+          </Template>
+          <Template src="skins:LateNight/decks/pad_mode_label.xml">
+            <SetVariable name="value">5</SetVariable>
+            <SetVariable name="label">KEY SHIFT</SetVariable>
+          </Template>
+          <Template src="skins:LateNight/decks/pad_mode_label.xml">
+            <SetVariable name="value">6</SetVariable>
+            <SetVariable name="label">PAD FX 1</SetVariable>
+          </Template>
+          <Template src="skins:LateNight/decks/pad_mode_label.xml">
+            <SetVariable name="value">7</SetVariable>
+            <SetVariable name="label">PAD FX 2</SetVariable>
+          </Template>
+
+        </Children>
+      </WidgetGroup><!-- PadModeBar -->
+
+      <WidgetGroup><!-- 8 pads, 4 por linha, como na controladora -->
+        <ObjectName>PadGrid</ObjectName>
+        <Layout>vertical</Layout>
+        <SizePolicy>max,min</SizePolicy>
+        <Children>
+
+          <WidgetGroup>
+            <Layout>horizontal</Layout>
+            <SizePolicy>max,min</SizePolicy>
+            <Children>
+              <Template src="skins:LateNight/controls/button_hotcue.xml">
+                <SetVariable name="number">1</SetVariable>
+              </Template>
+              <Template src="skins:LateNight/controls/button_hotcue.xml">
+                <SetVariable name="number">2</SetVariable>
+              </Template>
+              <Template src="skins:LateNight/controls/button_hotcue.xml">
+                <SetVariable name="number">3</SetVariable>
+              </Template>
+              <Template src="skins:LateNight/controls/button_hotcue.xml">
+                <SetVariable name="number">4</SetVariable>
+              </Template>
+            </Children>
+          </WidgetGroup>
+
+          <WidgetGroup>
+            <Layout>horizontal</Layout>
+            <SizePolicy>max,min</SizePolicy>
+            <Children>
+              <Template src="skins:LateNight/controls/button_hotcue.xml">
+                <SetVariable name="number">5</SetVariable>
+              </Template>
+              <Template src="skins:LateNight/controls/button_hotcue.xml">
+                <SetVariable name="number">6</SetVariable>
+              </Template>
+              <Template src="skins:LateNight/controls/button_hotcue.xml">
+                <SetVariable name="number">7</SetVariable>
+              </Template>
+              <Template src="skins:LateNight/controls/button_hotcue.xml">
+                <SetVariable name="number">8</SetVariable>
+              </Template>
+            </Children>
+          </WidgetGroup>
+
+        </Children>
+      </WidgetGroup><!-- PadGrid -->
+
+    </Children>
+  </WidgetGroup><!-- PadSection -->
+</Template>
