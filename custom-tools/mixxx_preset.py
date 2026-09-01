@@ -119,6 +119,30 @@ AJUSTES = [
                   "em DAW no clique. So vale para analises NOVAS",
     },
     {
+        "rotulo": "Curva do crossfader",
+        "escopo": "[Mixer Profile]",
+        "chave": "xFaderCurve",
+        # kTransformDefault = 1.0, em src/engine/enginexfader.cpp
+        # A curva vai de 0.6 a 1000. Em 300 o som so cai depois de 99,6% do curso.
+        "valores": {"hiphop": "300", "house": "1"},
+        "padrao": "1",
+        "legivel": {"300": "corte rapido", "1": "fade suave"},
+        "porque": "com curva alta o som fica cheio quase todo o curso e corta so na "
+                  "ponta - e o gesto do transformer e do crab; em house se quer o "
+                  "contrario, transicao longa",
+    },
+    {
+        "rotulo": "Modo do crossfader",
+        "escopo": "[Mixer Profile]",
+        "chave": "xFaderMode",
+        # MIXXX_XFADER_ADDITIVE = 0.0, em src/engine/enginexfader.h
+        "valores": {"hiphop": "0", "house": "1"},
+        "padrao": "0",
+        "legivel": {"0": "aditivo", "1": "potencia constante"},
+        "porque": "potencia constante mantem o volume estavel ao longo de uma "
+                  "transicao longa; para cortar rapido ela so atrapalha",
+    },
+    {
         "rotulo": "BPM do relogio interno",
         "escopo": "[InternalClock]",
         "chave": "bpm",

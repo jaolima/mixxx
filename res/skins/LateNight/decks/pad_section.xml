@@ -73,15 +73,19 @@
             <SizePolicy>max,min</SizePolicy>
             <Children>
               <Template src="skins:LateNight/controls/button_hotcue.xml">
+                <SetVariable name="BtnType">embedded</SetVariable>
                 <SetVariable name="number">1</SetVariable>
               </Template>
               <Template src="skins:LateNight/controls/button_hotcue.xml">
+                <SetVariable name="BtnType">embedded</SetVariable>
                 <SetVariable name="number">2</SetVariable>
               </Template>
               <Template src="skins:LateNight/controls/button_hotcue.xml">
+                <SetVariable name="BtnType">embedded</SetVariable>
                 <SetVariable name="number">3</SetVariable>
               </Template>
               <Template src="skins:LateNight/controls/button_hotcue.xml">
+                <SetVariable name="BtnType">embedded</SetVariable>
                 <SetVariable name="number">4</SetVariable>
               </Template>
             </Children>
@@ -92,15 +96,19 @@
             <SizePolicy>max,min</SizePolicy>
             <Children>
               <Template src="skins:LateNight/controls/button_hotcue.xml">
+                <SetVariable name="BtnType">embedded</SetVariable>
                 <SetVariable name="number">5</SetVariable>
               </Template>
               <Template src="skins:LateNight/controls/button_hotcue.xml">
+                <SetVariable name="BtnType">embedded</SetVariable>
                 <SetVariable name="number">6</SetVariable>
               </Template>
               <Template src="skins:LateNight/controls/button_hotcue.xml">
+                <SetVariable name="BtnType">embedded</SetVariable>
                 <SetVariable name="number">7</SetVariable>
               </Template>
               <Template src="skins:LateNight/controls/button_hotcue.xml">
+                <SetVariable name="BtnType">embedded</SetVariable>
                 <SetVariable name="number">8</SetVariable>
               </Template>
             </Children>
