@@ -29,6 +29,7 @@
 #include "preferences/dialog/dlgprefautodj.h"
 #include "preferences/dialog/dlgprefcolors.h"
 #include "preferences/dialog/dlgprefdeck.h"
+#include "preferences/dialog/dlgprefquick.h"
 #include "preferences/dialog/dlgprefeffects.h"
 #include "preferences/dialog/dlgprefinterface.h"
 #include "preferences/dialog/dlgprefmixer.h"
@@ -184,6 +185,12 @@ DlgPreferences::DlgPreferences(
                           new QTreeWidgetItem(contentsTreeWidget, QTreeWidgetItem::Type)),
             tr("Colors"),
             "ic_preferences_colors.svg");
+
+    addPageWidget(PreferencesPage(
+                          new DlgPrefQuick(this, m_pConfig),
+                          new QTreeWidgetItem(contentsTreeWidget, QTreeWidgetItem::Type)),
+            tr("Essentials"),
+            "ic_preferences_decks.svg");
 
     addPageWidget(PreferencesPage(
                           new DlgPrefDeck(this, m_pConfig),
