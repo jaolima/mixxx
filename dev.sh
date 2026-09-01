@@ -88,6 +88,9 @@ build_cmake_args() {
         -S "$REPO_DIR"
         -B "$BUILD_DIR"
         -DCMAKE_BUILD_TYPE="$BUILD_TYPE"
+        # compile_commands.json drives IntelliSense / clangd, so editors do not
+        # need to run their own configure over this build directory.
+        -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
         # Feature flags mirror the "Ubuntu 24.04" job in
         # .github/workflows/build.yml, so a local build matches what CI checks.
         -DQT6=ON
