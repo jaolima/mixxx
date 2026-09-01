@@ -606,8 +606,6 @@ QList<QWidget*> LegacySkinParser::parseNode(const QDomElement& node) {
         result = wrapWidget(parseCoverArt(node));
     } else if (nodeName == "SearchBox") {
         result = wrapWidget(parseSearchBox(node));
-    } else if (nodeName == "SidebarSearchBox") {
-        result = wrapWidget(parseSidebarSearchBox(node));
     } else if (nodeName == "WidgetGroup") {
         result = wrapWidget(parseWidgetGroup(node));
     } else if (nodeName == "TrackWidgetGroup") {
@@ -1573,18 +1571,6 @@ QWidget* LegacySkinParser::parseSearchBox(const QDomElement& node) {
     m_pKeyboard->registerSearchBar(pLineEditSearch);
 
     m_pLibrary->bindSearchboxWidget(pLineEditSearch);
-
-    return pLineEditSearch;
-}
-
-QWidget* LegacySkinParser::parseSidebarSearchBox(const QDomElement& node) {
-    // Mesma caixa de busca, ligada a arvore lateral em vez da tabela de faixas.
-    // Filtra pastas, playlists e crates pelo nome; nao toca nas faixas.
-    WSearchLineEdit* pLineEditSearch = new WSearchLineEdit(m_pParent, m_pConfig);
-    commonWidgetSetup(node, pLineEditSearch, false);
-    pLineEditSearch->setup(node, *m_pContext);
-
-    m_pLibrary->bindSidebarSearchboxWidget(pLineEditSearch);
 
     return pLineEditSearch;
 }

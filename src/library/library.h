@@ -19,7 +19,6 @@ class AnalysisFeature;
 class AutoDJFeature;
 class BrowseFeature;
 class ControlObject;
-class ControlPushButton;
 class CrateFeature;
 class LibraryControl;
 class LibraryFeature;
@@ -70,10 +69,6 @@ class Library: public QObject {
 
     void bindSearchboxWidget(WSearchLineEdit* pSearchboxWidget);
     void bindSidebarWidget(WLibrarySidebar* sidebarWidget);
-    /// Liga uma caixa de busca que filtra a arvore lateral, e nao as faixas.
-    /// A skin costuma declarar a caixa antes da arvore, entao guardamos os
-    /// dois lados e conectamos quando o segundo chegar.
-    void bindSidebarSearchboxWidget(WSearchLineEdit* pSearchbox);
     void bindLibraryWidget(WLibrary* libraryWidget,
                     KeyboardEventFilter* pKeyboard);
 
@@ -211,22 +206,9 @@ class Library: public QObject {
     QFont m_trackTableFont;
     int m_iTrackTableRowHeight;
     bool m_editMetadataSelectedClick;
-    /// Liga a caixa de busca lateral a arvore assim que os dois existirem.
-    void connectSidebarSearch();
-
-    // QPointer, e nao ponteiro cru: trocar de skin destroi estes widgets
-    // (MixxxMainWindow::rebootMixxxView) e a skin nova pode nao ter os dois.
-    // Com ponteiro cru sobraria um endereco invalido e o connect seguinte
-    // derrubaria o programa.
-    QPointer<WLibrarySidebar> m_pSidebarWidget;
-    QPointer<WSearchLineEdit> m_pSidebarSearchbox;
     /// Numero de faixas visiveis na tabela atual, ja considerando a busca.
     /// Exposto como controle para a skin poder mostra-lo com um <Number>,
     /// sem precisar de um widget dedicado.
     std::unique_ptr<ControlObject> m_pTrackCount;
     std::unique_ptr<ControlObject> m_pKeyNotation;
-    /// Abre o menu de colunas da tabela de faixas a partir de um botao da
-    /// interface. Um botao da skin nao alcanca o cabecalho da tabela
-    /// diretamente; este controle e a ponte entre os dois.
-    std::unique_ptr<ControlPushButton> m_pShowColumnsMenu;
 };

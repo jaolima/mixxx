@@ -38,22 +38,6 @@
                     <Layout>horizontal</Layout>
                     <SizePolicy>min,max</SizePolicy>
                     <Children>
-
-                      <!-- Busca da arvore lateral: filtra pastas, playlists e
-                           crates pelo nome. Nao mexe nas faixas - para isso ha
-                           a caixa acima da tabela. -->
-                      <WidgetGroup>
-                        <ObjectName>SearchLineBox</ObjectName>
-                        <Layout>horizontal</Layout>
-                        <SizePolicy>min,max</SizePolicy>
-                        <Children>
-                          <SidebarSearchBox>
-                            <Placeholder>Search folders...</Placeholder>
-                            <Icon>skins:LateNight/misc_res/search_magnifier.svg</Icon>
-                          </SidebarSearchBox>
-                        </Children>
-                      </WidgetGroup>
-
                       <WidgetGroup>
                         <ObjectName>LibExpandBox</ObjectName>
                         <Layout>vertical</Layout>
@@ -124,18 +108,6 @@
                     <Layout>horizontal</Layout>
                     <SizePolicy>me,max</SizePolicy>
                     <Children>
-
-                      <!-- Abre o menu de colunas, o mesmo do clique direito no
-                           cabecalho, com um checkbox por coluna. -->
-                      <Template src="skins:LateNight/controls/button_1state.xml">
-                        <SetVariable name="ObjectName">GuiToggleButton</SetVariable>
-                        <SetVariable name="Size">70f,26f</SetVariable>
-                        <SetVariable name="state_0_text">COLUMNS</SetVariable>
-                        <SetVariable name="ConfigKey">[Library],show_columns_menu</SetVariable>
-                      </Template>
-
-                      <WidgetGroup><Size>4f,0min</Size></WidgetGroup>
-
                       <!-- Largura fixa: a busca nao precisa ocupar a linha toda,
                            e assim sobra espaco para o contador. -->
                       <WidgetGroup>
