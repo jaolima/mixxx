@@ -2,55 +2,10 @@
 
 Ferramentas próprias deste fork. Nada aqui vem do upstream do Mixxx.
 
-## mixxx_preset.py
-
-Troca o conjunto de configurações do Mixxx conforme o estilo que você vai tocar.
-Hip hop e house querem ajustes **opostos**, e são seis opções espalhadas por
-telas diferentes das Preferências — este script troca tudo de uma vez.
-
-Funciona em **Windows, Linux e macOS**, só com a biblioteca padrão do Python.
-
-```shell
-python mixxx_preset.py                    # abre a janela de seleção
-python mixxx_preset.py --status           # imprime a config atual
-python mixxx_preset.py hiphop             # aplica direto, sem janela
-python mixxx_preset.py house --no-launch  # aplica sem abrir o Mixxx
-```
-
-Sem argumentos, abre uma janela com os presets, uma tabela **Agora → Depois**
-(as linhas que mudam ficam destacadas) e a justificativa de cada ajuste, para
-você conferir antes de aplicar. A janela usa tkinter; em algumas distribuições
-Linux ele vem separado (`sudo apt install python3-tk`), e sem ele o modo texto
-continua funcionando.
-
-Caminhos detectados automaticamente: `%LOCALAPPDATA%\Mixxx` no Windows,
-`~/.mixxx` no Linux (o Mixxx não usa XDG — ver `MIXXX_SETTINGS_PATH` no
-CMakeLists.txt) e `~/Library/Application Support/Mixxx` no macOS.
-
-| Ajuste | `hiphop` | `house` | Por quê |
-| --- | --- | --- | --- |
-| quantize (decks) | OFF | ON | grade é imprecisa em hip hop/reggae; em house é confiável |
-| pitch range | ±16% | ±8% | 85→100 BPM exige alcance; house pede passo fino |
-| keylock | OFF | ON | vinil sobe o tom; house mantém |
-| tempo na análise | variável | fixo | hip hop/reggae oscila; house é feito no clique |
-| BPM do relógio interno | 90 | 124 | ponto de partida de cada estilo |
-| motor do keylock | RubberBand | RubberBand | igual de propósito — ver abaixo |
-
-O **motor do keylock** fica em RubberBand nos dois presets. Ele tem qualidade
-melhor que o SoundTouch e só custa CPU quando o keylock está ligado, então
-rebaixá-lo no preset de hip hop (onde o keylock fica desligado) seria perda sem
-ganho. É também o padrão do Mixxx quando compilado com RubberBand, que é o caso
-deste build — ver `defaultKeylockEngine()` em `src/engine/enginebuffer.h`.
-
-**Por que o script sempre fecha o Mixxx antes de gravar:** o Mixxx mantém essas
-opções em memória e **reescreve o `mixxx.cfg` inteiro ao sair**. Editar o arquivo
-com ele aberto — ou passar pelas Preferências depois — desfaz a alteração. Foi
-exatamente assim que um ajuste manual anterior se perdeu.
-
-Cada aplicação salva `mixxx.cfg.bak-preset` antes de gravar.
-
-**Nota sobre "tempo na análise":** vale só para análises **novas**. Faixas já
-analisadas mantêm a grade que têm até você reanalisá-las.
+> **O que saiu daqui:** os scripts de configuração (`mixxx_preset.py` e
+> `mixxx_config.py`) foram aposentados quando viraram código nativo. As opções,
+> os presets por estilo e os perfis de áudio agora vivem em
+> **Preferências → Essentials**, dentro do próprio Mixxx.
 
 ## spotify_to_mixxx.py
 
