@@ -144,6 +144,25 @@ promising. I don't have the Debugging Tools installed on this machine.
 | Build type | RelWithDebInfo |
 | Library size | 674 tracks, 1220 analyses |
 
+### It is not only the Library class
+
+I first hit this while adding a field to `Library`. It also happens in
+`SoundManagerConfig`: adding a single `QStringList` member there — **declared and
+never used anywhere** — produced 8 crashes out of 8, the same as the inert array
+in `Library`.
+
+That has a practical cost beyond the crash itself. I was writing a fix for a
+separate, real problem: Mixxx drops any sound device that is absent when the
+config is read (`if (devicesMatchingByName == 0) { continue; }` in
+`soundmanagerconfig.cpp`) and rewrites the file without it, so opening Mixxx once
+with a controller unplugged permanently erases its output routing. My fix
+preserved the absent device's XML and restored it on write, skipping any audio
+path already claimed by a present device. **It worked** — the absent
+device's configuration survived an open/close cycle. But it needs one new member
+on `SoundManagerConfig`, and that alone makes Mixxx crash on startup.
+
+So this bug is not just a nuisance: it currently blocks fixing other bugs.
+
 ### Why this matters
 
 Any change that alters the size or layout of `Library` — adding a control, a
