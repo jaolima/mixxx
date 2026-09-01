@@ -1,0 +1,27 @@
+<!--
+  Um rotulo de modo de pad, visivel apenas quando [ChannelN],pad_mode e igual ao
+  valor deste rotulo. Empilhados, os oito formam um unico indicador que segue o
+  modo escolhido na controladora.
+
+  Variaveis: Group, value (0..7), label (texto exibido)
+-->
+<Template>
+  <WidgetGroup>
+    <ObjectName>PadModeLabel</ObjectName>
+    <Layout>horizontal</Layout>
+    <SizePolicy>me,f</SizePolicy>
+    <Children>
+      <Label>
+        <ObjectName>PadModeText</ObjectName>
+        <SizePolicy>me,f</SizePolicy>
+        <Text><Variable name="label"/></Text>
+        <Alignment>center</Alignment>
+      </Label>
+    </Children>
+    <Connection>
+      <ConfigKey><Variable name="Group"/>,pad_mode</ConfigKey>
+      <Transform><IsEqual><Variable name="value"/></IsEqual></Transform>
+      <BindProperty>visible</BindProperty>
+    </Connection>
+  </WidgetGroup>
+</Template>

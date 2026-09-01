@@ -72,8 +72,12 @@ Library::Library(
           m_pSidebarModel(make_parented<SidebarModel>(this)),
           m_pLibraryControl(make_parented<LibraryControl>(this)),
           m_pLibraryWidget(nullptr),
+          m_pTrackCount(std::make_unique<ControlObject>(
+                  ConfigKey(QStringLiteral("[Library]"),
+                          QStringLiteral("track_count")))),
           m_pKeyNotation(std::make_unique<ControlObject>(
                   mixxx::library::prefs::kKeyNotationConfigKey, false)) {
+
     qRegisterMetaType<LibraryRemovalType>("LibraryRemovalType");
 
     connect(m_pTrackCollectionManager,

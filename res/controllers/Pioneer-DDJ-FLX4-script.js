@@ -176,6 +176,10 @@ PioneerDDJFLX4.sendKeepAlive = function() {
 };
 
 // Jog wheel constants
+// vinylMode ligado: o prato agarra o audio como um vinil (scratch).
+// Desligado: o prato so adianta/atrasa a musica (pitch bend), sem parar a
+// reproducao - o "modo CD". O valor inicial vem da opcao do mapeamento e pode
+// ser alternado durante o set por PioneerDDJFLX4.toggleVinylMode.
 PioneerDDJFLX4.vinylMode = true;
 PioneerDDJFLX4.alpha = 1.0/8;
 PioneerDDJFLX4.beta = PioneerDDJFLX4.alpha/32;
@@ -251,6 +255,20 @@ PioneerDDJFLX4.toggleLight = function(midiIn, active) {
 //
 
 PioneerDDJFLX4.init = function() {
+    // Estado inicial do prato vindo das opcoes do mapeamento. getSetting devolve
+    // undefined em mapeamentos antigos ou se a opcao for removida, entao mantemos
+    // o vinil como padrao nesse caso.
+    const vinylSetting = engine.getSetting("vinyl_mode");
+    if (vinylSetting !== undefined) {
+        engine.setValue("[App]", "jog_vinyl_mode", vinylSetting ? 1 : 0);
+    }
+    PioneerDDJFLX4.applyVinylMode(engine.getValue("[App]", "jog_vinyl_mode"));
+
+    // O botao da interface (e qualquer outra fonte) chega por aqui.
+    engine.makeConnection("[App]", "jog_vinyl_mode", function(value) {
+        PioneerDDJFLX4.applyVinylMode(value);
+    });
+
     engine.setValue("[EffectRack1_EffectUnit1]", "show_focus", 1);
 
     engine.makeConnection("[Channel1]", "vu_meter", PioneerDDJFLX4.vuMeterUpdate);
@@ -653,6 +671,43 @@ PioneerDDJFLX4.shiftPressed = function(channel, _control, value, _status, _group
 
 
 //
+// Vinyl mode (scratch) x modo CD (pitch bend)
+//
+// Equivale ao botao VINIL de outros softwares de DJ: alterna se o prato agarra
+// o audio (scratch) ou apenas adianta/atrasa a musica. Vale para os dois decks,
+// que e como o jogo de mao do DJ espera - nao faz sentido um prato arranhar e o
+// outro nao.
+//
+
+// Aplica o modo vindo do controle [App],jog_vinyl_mode. Esse controle e a ponte
+// com o botao da interface: um script de controlador nao pode criar controles,
+// entao ele e criado pelo PlayerManager e apenas observado aqui.
+PioneerDDJFLX4.applyVinylMode = function(value) {
+    PioneerDDJFLX4.vinylMode = Boolean(value);
+
+    // Se o prato estava agarrado ao audio quando o modo foi desligado, e preciso
+    // soltar agora - senao a musica fica presa ate o proximo toque no prato.
+    if (!PioneerDDJFLX4.vinylMode) {
+        for (let deckNum = 1; deckNum <= 2; deckNum++) {
+            if (engine.isScratching(deckNum)) {
+                engine.scratchDisable(deckNum);
+            }
+        }
+    }
+};
+
+// Handler para um botao fisico, caso um dia seja mapeado. Escreve no controle e
+// deixa a conexao aplicar - assim botao, interface e script nunca divergem.
+PioneerDDJFLX4.toggleVinylMode = function(_channel, _control, value, _status, _group) {
+    if (value === 0) {
+        return; // ignora o release: alterna so ao pressionar
+    }
+    const atual = engine.getValue("[App]", "jog_vinyl_mode");
+    engine.setValue("[App]", "jog_vinyl_mode", atual > 0 ? 0 : 1);
+};
+
+
+//
 // Tempo sliders
 //
 // The tempo option in Mixxx's deck preferences determine whether down/up
@@ -741,26 +796,33 @@ PioneerDDJFLX4.samplerPlayOutputCallbackFunction = function(value, group, _contr
     }
 };
 
-PioneerDDJFLX4.padModeKeyPressed = function(_channel, _control, value, _status, _group) {
-    const deck = (_status === 0x90 ? PioneerDDJFLX4.lights.deck1 : PioneerDDJFLX4.lights.deck2);
+// Modo de pad -> valor publicado em [ChannelN],pad_mode, na mesma ordem
+// declarada em basetrackplayer.cpp. E o que permite a tela mostrar qual modo
+// esta ativo, como fazem outros softwares de DJ.
+PioneerDDJFLX4.padModes = {
+    0x1B: {light: "hotcueMode", value: 0},
+    0x6D: {light: "beatLoopMode", value: 1},
+    0x20: {light: "beatJumpMode", value: 2},
+    0x22: {light: "samplerMode", value: 3},
+    0x69: {light: "keyboardMode", value: 4},
+    0x6F: {light: "keyShiftMode", value: 5},
+    0x1E: {light: "padFX1Mode", value: 6},
+    0x6B: {light: "padFX2Mode", value: 7},
+};
 
-    if (_control === 0x1B) {
-        PioneerDDJFLX4.toggleLight(deck.hotcueMode, true);
-    } else if (_control === 0x69) {
-        PioneerDDJFLX4.toggleLight(deck.keyboardMode, true);
-    } else if (_control === 0x1E) {
-        PioneerDDJFLX4.toggleLight(deck.padFX1Mode, true);
-    } else if (_control === 0x6B) {
-        PioneerDDJFLX4.toggleLight(deck.padFX2Mode, true);
-    } else if (_control === 0x20) {
-        PioneerDDJFLX4.toggleLight(deck.beatJumpMode, true);
-    } else if (_control === 0x6D) {
-        PioneerDDJFLX4.toggleLight(deck.beatLoopMode, true);
-    } else if (_control === 0x22) {
-        PioneerDDJFLX4.toggleLight(deck.samplerMode, true);
-    } else if (_control === 0x6F) {
-        PioneerDDJFLX4.toggleLight(deck.keyShiftMode, true);
+PioneerDDJFLX4.padModeKeyPressed = function(_channel, _control, value, _status, _group) {
+    const isDeck1 = _status === 0x90;
+    const deck = (isDeck1 ? PioneerDDJFLX4.lights.deck1 : PioneerDDJFLX4.lights.deck2);
+    const mode = PioneerDDJFLX4.padModes[_control];
+    if (mode === undefined) {
+        return;
     }
+
+    PioneerDDJFLX4.toggleLight(deck[mode.light], true);
+
+    // Espelha o modo na interface. O controle e criado pelo Mixxx (um script
+    // nao pode criar controles), aqui apenas escrevemos nele.
+    engine.setValue(isDeck1 ? "[Channel1]" : "[Channel2]", "pad_mode", mode.value);
 };
 
 PioneerDDJFLX4.samplerPadPressed = function(_channel, _control, value, _status, group) {

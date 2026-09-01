@@ -1068,3 +1068,38 @@ WLibrarySidebar {
 #Border58 {
   border: 1px solid #585858;
 }
+
+/* ------------------------------------------------------------------
+   Performance pads e o indicador de modo.
+   O indicador acompanha o modo escolhido na controladora, para que a
+   tela mostre o que a mao acabou de selecionar.
+   ------------------------------------------------------------------ */
+
+#PadSection {
+  margin: 2px 0px 0px 0px;
+  padding: 3px;
+  background-color: #1c1c1c;
+  border: 1px solid #2e2e2e;
+  border-radius: 3px;
+}
+
+#PadModeBar {
+  background-color: #262626;
+  border: 1px solid #3a3a3a;
+  border-radius: 2px;
+  margin-bottom: 3px;
+}
+
+/* Cor de destaque: o modo ativo tem que saltar aos olhos num set,
+   com o ambiente escuro e o tempo curto entre uma faixa e outra. */
+#PadModeText {
+  color: #ff9c2b;
+  font-weight: bold;
+  font-size: 11px;
+  letter-spacing: 1px;
+  qproperty-alignment: 'AlignCenter';
+}
+
+#PadGrid {
+  margin: 0px;
+}

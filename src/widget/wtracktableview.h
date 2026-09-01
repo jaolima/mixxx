@@ -147,6 +147,13 @@ class WTrackTableView : public WLibraryTableView {
         restoreCurrentIndex();
     }
 
+  protected:
+    /// A tabela recebe o modelo antes de aparecer na tela, e naquele
+    /// momento updateTrackCount() se recusa a publicar (a view ainda nao
+    /// esta visivel). Sem isto o contador ficaria zerado ate o usuario
+    /// buscar algo ou trocar de view.
+    void showEvent(QShowEvent* pEvent) override;
+
   private slots:
     void doSortByColumn(int headerSection, Qt::SortOrder sortOrder);
     void applySortingIfVisible();
@@ -154,6 +161,8 @@ class WTrackTableView : public WLibraryTableView {
 
     // Signalled 20 times per second (every 50ms) by GuiTick.
     void slotGuiTick50ms(double);
+    /// Publica em [Library],track_count quantas faixas a tabela mostra.
+    void updateTrackCount();
     void slotScrollValueChanged(int);
 
     void slotSortingChanged(int headerSection, Qt::SortOrder order);

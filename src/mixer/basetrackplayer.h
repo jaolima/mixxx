@@ -176,6 +176,10 @@ class BaseTrackPlayerImpl : public BaseTrackPlayer {
     PerformanceTimer m_ejectTimer;
 
     std::unique_ptr<ControlPushButton> m_pEject;
+    /// Modo de pad ativo neste deck, publicado pelo script do
+    /// controlador para a interface poder destacar o modo escolhido.
+    /// Valores em PadMode, em basetrackplayer.cpp.
+    std::unique_ptr<ControlObject> m_pPadMode;
 
     // Deck clone control
     std::unique_ptr<ControlObject> m_pCloneFromDeck;

@@ -61,6 +61,11 @@ class WTrackTableViewHeader : public QHeaderView {
     void contextMenuEvent(QContextMenuEvent* event) override;
     void setModel(QAbstractItemModel* model) override;
 
+    /// Abre o mesmo menu de colunas do clique com o botao direito, mas a partir
+    /// de outro ponto da interface - um botao na barra acima da tabela, por
+    /// exemplo. Sem isto o menu so existiria escondido no cabecalho.
+    void popupColumnMenu(const QPoint& globalPos);
+
     void saveHeaderState();
     void restoreHeaderState();
     void loadDefaultHeaderState();

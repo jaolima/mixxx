@@ -321,20 +321,30 @@ QList<int> BaseTrackTableModel::pasteTracks(const QModelIndex& insertionIndex) {
 
 bool BaseTrackTableModel::isColumnHiddenByDefault(
         int column) {
-    return column == fieldIndex(ColumnCache::COLUMN_LIBRARYTABLE_ALBUMARTIST) ||
-            column == fieldIndex(ColumnCache::COLUMN_LIBRARYTABLE_BPM_LOCK) ||
-            column == fieldIndex(ColumnCache::COLUMN_LIBRARYTABLE_BITRATE) ||
-            column == fieldIndex(ColumnCache::COLUMN_LIBRARYTABLE_CHANNELS) ||
-            column == fieldIndex(ColumnCache::COLUMN_LIBRARYTABLE_COMPOSER) ||
-            column == fieldIndex(ColumnCache::COLUMN_LIBRARYTABLE_FILETYPE) ||
-            column == fieldIndex(ColumnCache::COLUMN_LIBRARYTABLE_GROUPING) ||
-            column == fieldIndex(ColumnCache::COLUMN_TRACKLOCATIONSTABLE_LOCATION) ||
-            column == fieldIndex(ColumnCache::COLUMN_LIBRARYTABLE_PLAYED) ||
-            column == fieldIndex(ColumnCache::COLUMN_LIBRARYTABLE_REPLAYGAIN) ||
-            column == fieldIndex(ColumnCache::COLUMN_LIBRARYTABLE_SAMPLERATE) ||
-            column == fieldIndex(ColumnCache::COLUMN_LIBRARYTABLE_TIMESPLAYED) ||
-            column == fieldIndex(ColumnCache::COLUMN_LIBRARYTABLE_TRACKNUMBER) ||
-            column == fieldIndex(ColumnCache::COLUMN_LIBRARYTABLE_YEAR);
+    // Lista de inclusao em vez de exclusao: mostramos apenas o que se olha
+    // durante um set e escondemos todo o resto. A lista anterior era de
+    // exclusao, entao cada coluna nova do Mixxx nascia visivel e a tabela ia
+    // ficando poluida sozinha.
+    //
+    // Nada aqui limita a busca: os campos pesquisados sao definidos a parte, em
+    // MixxxLibraryFeature, e uma coluna escondida continua sendo pesquisada.
+    static constexpr ColumnCache::Column kVisibleByDefault[] = {
+            ColumnCache::COLUMN_LIBRARYTABLE_PREVIEW,
+            ColumnCache::COLUMN_LIBRARYTABLE_COVERART,
+            ColumnCache::COLUMN_LIBRARYTABLE_TITLE,
+            ColumnCache::COLUMN_LIBRARYTABLE_ARTIST,
+            ColumnCache::COLUMN_LIBRARYTABLE_BPM,
+            ColumnCache::COLUMN_LIBRARYTABLE_GENRE,
+            ColumnCache::COLUMN_LIBRARYTABLE_KEY,
+    };
+    for (const auto visibleColumn : kVisibleByDefault) {
+        // fieldIndex devolve -1 para colunas ausentes neste modelo; um indice
+        // de coluna real nunca e negativo, entao nao ha falso positivo.
+        if (column == fieldIndex(visibleColumn)) {
+            return false;
+        }
+    }
+    return true;
 }
 
 QAbstractItemDelegate* BaseTrackTableModel::delegateForColumn(
