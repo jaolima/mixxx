@@ -27,12 +27,19 @@ ApplicationWindow {
     property alias showSamplers: toolbar.showSamplers
     readonly property bool showWaveforms: toolbar.showWaveforms
 
+    // Desenhada para desktop: os tamanhos internos sao pixels pensados para uma
+    // janela deste tamanho. Guardamos a medida de projeto para encaixa-la numa
+    // tela de celular sem reescrever cada componente.
+    readonly property int designHeight: 1008
+    readonly property int designWidth: 1792
+    readonly property bool isMobile: Qt.platform.os === "android" || Qt.platform.os === "ios"
+
     color: LateNightTheme.backgroundColor
-    height: 1008
-    minimumHeight: 668
-    minimumWidth: 1280
+    height: isMobile ? Screen.height : designHeight
+    minimumHeight: isMobile ? 0 : 668
+    minimumWidth: isMobile ? 0 : 1280
     visible: true
-    width: 1792
+    width: isMobile ? Screen.width : designWidth
 
     Mixxx.ControlProxy {
         group: "[App]"
@@ -185,7 +192,17 @@ ApplicationWindow {
     Column {
         id: content
 
-        anchors.fill: parent
+        // No celular mantem o tamanho de projeto e e reduzido inteiro por
+        // `scale`, para caber na tela. Sem `anchors.fill`: ele e
+        // `anchors.centerIn` se anulam no mesmo item.
+        anchors.centerIn: parent
+        height: root.isMobile ? root.designHeight : root.height
+        transformOrigin: Item.Center
+        width: root.isMobile ? root.designWidth : root.width
+
+        scale: root.isMobile
+            ? Math.min(root.width / root.designWidth, root.height / root.designHeight)
+            : 1
 
         move: Transition {
             NumberAnimation {

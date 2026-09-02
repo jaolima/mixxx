@@ -22,14 +22,25 @@ ApplicationWindow {
     property alias showEffects: showEffectsButton.checked
     property alias showSamplers: showSamplersButton.checked
 
+    // Esta interface foi desenhada para desktop: alturas de deck, botoes e fontes
+    // sao pixels pensados para uma janela deste tamanho. Guardamos a medida de
+    // projeto para encaixa-la numa tela de celular sem reescrever cada componente.
+    readonly property int designHeight: 1008
+    readonly property int designWidth: 1792
+    readonly property bool isMobile: Qt.platform.os === "android" || Qt.platform.os === "ios"
+
     color: Theme.backgroundColor
-    height: 1008
+    // No celular a janela e a tela, e nao ha o que redimensionar. Os minimos de
+    // desktop nao cabem, e a interface acabava cortada - um deck ocupando tudo e
+    // o resto fora do vidro.
+    height: isMobile ? Screen.height : designHeight
     menuBar: nativeApplicationMenuLoader.item
-    minimumHeight: 300
-    minimumWidth: 680
+    minimumHeight: isMobile ? 0 : 300
+    minimumWidth: isMobile ? 0 : 680
     visible: true
-    visibility: Mixxx.Config.configStartInFullscreenKey ? Window.FullScreen : Window.Windowed
-    width: 1792
+    visibility: isMobile ? Window.FullScreen
+                         : (Mixxx.Config.configStartInFullscreenKey ? Window.FullScreen : Window.Windowed)
+    width: isMobile ? Screen.width : designWidth
 
     Loader {
         id: nativeApplicationMenuLoader
@@ -101,7 +112,23 @@ ApplicationWindow {
     Column {
         id: content
 
-        anchors.fill: parent
+        // No desktop acompanha a janela, como sempre fez. No celular mantem o
+        // tamanho de projeto e e reduzido inteiro por `scale`, para caber na tela
+        // sem reescrever cada componente.
+        //
+        // E uma acomodacao, nao um layout de celular: os alvos de toque ficam
+        // pequenos para operar em pe, no escuro, com uma mao. Serve para ver a
+        // interface inteira; o layout proprio de toque e outra etapa.
+        //
+        // Sem `anchors.fill`: ele e `anchors.centerIn` se anulam no mesmo item.
+        anchors.centerIn: parent
+        height: root.isMobile ? root.designHeight : root.height
+        transformOrigin: Item.Center
+        width: root.isMobile ? root.designWidth : root.width
+
+        scale: root.isMobile
+            ? Math.min(root.width / root.designWidth, root.height / root.designHeight)
+            : 1
 
         move: Transition {
             NumberAnimation {
