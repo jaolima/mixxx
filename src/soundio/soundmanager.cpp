@@ -95,6 +95,25 @@ SoundManager::SoundManager(
 
     checkConfig();
 
+    if (m_config.getOutputs().isEmpty()) {
+        // O arquivo foi lido, mas nenhuma saida sobrou: os dispositivos que ele
+        // descreve nao estao presentes agora. Acontece toda vez que se abre o
+        // Mixxx sem a controladora ligada.
+        //
+        // Sem isto o programa sobe mudo e pergunta o que fazer, o que nao
+        // ajuda: quem so quer ouvir pela placa do computador tem que remontar o
+        // roteamento na mao. E nao custa a configuracao antiga - readFromDisk
+        // guarda os dispositivos ausentes a parte e writeToDisk os devolve,
+        // entao ligar a controladora de novo traz o roteamento dela de volta.
+        //
+        // Precisa vir depois de checkConfig(): tanto ele quanto
+        // devicesEnumerated() reavaliam a configuracao e chamam loadDefaults por
+        // conta propria, desfazendo o que for feito antes deles.
+        qInfo() << "No configured output device is present; falling back to the "
+                   "default output. The absent devices' configuration is kept.";
+        m_config.loadDefaults(this, SoundManagerConfig::DEVICES);
+    }
+
     // Don't write config to disk, yet -- it may be reset to defaults in case
     // previously configured devices were not found.
     // Write new config after MixxxMainWindow::noOutputDlg where the user has
