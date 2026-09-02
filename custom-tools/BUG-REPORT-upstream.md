@@ -56,14 +56,11 @@ takes a clean build from 0 crashes in 12 to 8 in 8.
 **Building with `-DLILV=OFF` fixes it.** Same inert member that gave 8/8 gives
 **0 crashes in 10** with LV2 disabled.
 
-The crash is intermittent and its rate depends on the exact layout: two variants
-of the same inert field gave 8 crashes out of 8 and 4 out of 8 respectively,
-while the unmodified build gave 0 out of 12.
-
-Since the added member is never read or written, this cannot be caused by
-behaviour. It points to a **latent memory corruption** whose effect depends on
-object layout: some write out of bounds only becomes fatal depending on where
-objects land in memory.
+The crash rate follows the layout rather than any behaviour: two variants of the
+same inert field gave 8 crashes out of 8 and 4 out of 8, while the unmodified
+build gave 0 out of 12. That is expected once the cause is known — whether the
+stray byte lands somewhere harmless or on top of live data is decided by where
+the allocator happens to place things.
 
 ### Steps to reproduce
 
@@ -106,7 +103,7 @@ which is itself evidence that layout — not behaviour — is what matters here.
 the patch above does not crash for you on the first few launches, try a dozen,
 and try moving the field to a different position in the class.
 
-### Why this looks like memory corruption
+### How it presents, before you know the cause
 
 - **The faulting module changes between runs**: `Qt6Core.dll`, `ntdll.dll`,
   `Qt6Sql.dll` and `mixxx.exe` itself.
@@ -118,7 +115,7 @@ and try moving the field to a different position in the class.
 All three are typical of a write past the end of a buffer: the damage is done
 early and only surfaces later, somewhere unrelated.
 
-### What I could rule out
+### What the added member is not
 
 - **Not the field's contents or name.** A `ControlObject` with an arbitrary name
   produces the same effect; so does a plain `char` array that is never touched.
@@ -126,7 +123,7 @@ early and only surfaces later, somewhere unrelated.
 - **Not the hardware setup.** Reproduced with a DDJ-FLX4 both connected and
   disconnected.
 
-### I tried AddressSanitizer, and it does not catch this
+### AddressSanitizer does not catch this - Page Heap does
 
 Worth reporting so nobody repeats the attempt. MSVC 2022 does support
 `/fsanitize=address` and ships the runtime, so an instrumented build is possible
@@ -153,9 +150,17 @@ every module to be instrumented, and `libprotobuf-lite.dll` comes prebuilt from
 vcpkg. It disappears with `detect_container_overflow=0`, and no real error takes
 its place.
 
-So the next step is probably **not** ASan. Windows PageHeap under a debugger, or
-a Linux build with ASan where the dependencies are instrumented too, look more
-promising. I don't have the Debugging Tools installed on this machine.
+**Windows Page Heap is what found it.** Installing the Debugging Tools and
+running
+
+```
+gflags /p /enable mixxx.exe /full
+cdb -g -G mixxx.exe
+```
+
+turns the silent overwrite into an immediate, precise stop at the moment of the
+write — the VERIFIER STOP quoted at the top of this issue. If you investigate
+this class of bug on Windows again, start there rather than with ASan.
 
 ### Environment
 
@@ -176,17 +181,24 @@ I first hit this while adding a field to `Library`. It also happens in
 never used anywhere** — produced 8 crashes out of 8, the same as the inert array
 in `Library`.
 
-That has a practical cost beyond the crash itself. I was writing a fix for a
-separate, real problem: Mixxx drops any sound device that is absent when the
-config is read (`if (devicesMatchingByName == 0) { continue; }` in
-`soundmanagerconfig.cpp`) and rewrites the file without it, so opening Mixxx once
-with a controller unplugged permanently erases its output routing. My fix
-preserved the absent device's XML and restored it on write, skipping any audio
-path already claimed by a present device. **It worked** — the absent
-device's configuration survived an open/close cycle. But it needs one new member
-on `SoundManagerConfig`, and that alone makes Mixxx crash on startup.
+That had a practical cost beyond the crash itself, and it is worth spelling out
+because it shows what this bug hides.
 
-So this bug is not just a nuisance: it currently blocks fixing other bugs.
+I was fixing a separate, real problem: Mixxx drops any sound device that is
+absent when the config is read (`if (devicesMatchingByName == 0) { continue; }`
+in `soundmanagerconfig.cpp`) and rewrites the file without it, so opening Mixxx
+once with a controller unplugged permanently erases its output routing. The fix
+preserves the absent device's XML and restores it on write, skipping any audio
+path already claimed by a present device.
+
+The fix was correct and worked on the first try — the absent device's routing
+survived an open/close cycle. But it needs one new member on
+`SoundManagerConfig`, and that alone made Mixxx crash on startup. For a while I
+believed my own fix was broken.
+
+With `LILV=OFF` the same fix runs clean: 0 crashes in 10 launches. So the lilv
+bug does not merely crash Mixxx — it makes unrelated, correct changes look
+defective, and sends whoever wrote them chasing the wrong thing.
 
 ### Why this matters
 
