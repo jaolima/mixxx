@@ -43,6 +43,11 @@ Item {
 
         // ---- barra superior --------------------------------------------
         RowLayout {
+            // fillHeight explicito: num ColumnLayout, um layout aninhado assume
+            // fillHeight true por padrao (um Item comum assume false). Sem isto
+            // a barra superior e a de transporte disputam a altura com o miolo
+            // e o esmagam - foi o que espremeu as ondas e a biblioteca.
+            Layout.fillHeight: false
             Layout.fillWidth: true
             Layout.preferredHeight: root.touchTarget
             spacing: root.gap
@@ -102,17 +107,27 @@ Item {
         // Ocupa o lugar das formas de onda em vez de flutuar por cima: numa
         // tela desse tamanho, um painel sobreposto esconde justamente o que se
         // quer conferir antes de carregar a faixa.
-        Skin.Library {
+        //
+        // Lista propria, nao a tabela do desktop: aquela tem doze colunas e
+        // linhas de 30 px, boas para o mouse e ilegiveis na mao.
+        MobileLibrary {
             Layout.fillHeight: true
             Layout.fillWidth: true
+            Layout.minimumHeight: Math.round(150 * root.dp)
+            dp: root.dp
             visible: root.libraryOpen
         }
 
         // ---- transporte, um bloco por deck -----------------------------
         RowLayout {
+            Layout.fillHeight: false
             Layout.fillWidth: true
             Layout.preferredHeight: root.deckStripHeight
             spacing: root.gap
+            // Some junto com as ondas: escolher a proxima faixa e uma tarefa de
+            // tela cheia, e PLAY, CUE, SYNC e o crossfader existem em hardware
+            // logo abaixo do celular. Ceder esses 88dp a lista vale mais.
+            visible: !root.libraryOpen
 
             Repeater {
                 model: ["[Channel1]", "[Channel2]"]
@@ -133,6 +148,7 @@ Item {
         Item {
             Layout.fillWidth: true
             Layout.preferredHeight: root.touchTarget
+            visible: !root.libraryOpen
 
             Mixxx.ControlProxy {
                 id: crossfaderControl

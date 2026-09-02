@@ -120,6 +120,10 @@ QmlTrackProxy::QmlTrackProxy(TrackPointer track, QObject* parent)
 }
 
 void QmlTrackProxy::slotBeatsChanged() {
+    // O andamento e derivado da grade: avisar aqui cobre tambem a reanalise
+    // feita com a faixa ja carregada.
+    emit bpmChanged();
+
     VERIFY_OR_DEBUG_ASSERT(m_pBeatsModel) {
         return;
     }
@@ -193,6 +197,13 @@ double QmlTrackProxy::getDuration() const {
         return -1;
     }
     return m_pTrack->getDuration();
+}
+
+double QmlTrackProxy::getBpm() const {
+    if (m_pTrack == nullptr) {
+        return 0.0;
+    }
+    return m_pTrack->getBpm();
 }
 
 int QmlTrackProxy::getSampleRate() const {
