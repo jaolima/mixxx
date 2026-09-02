@@ -256,7 +256,15 @@ function(fatal_error_missing_env)
   endif()
 endfunction()
 
-if(UNIX AND NOT APPLE)
+# O alvo Android e a excecao: cross-compilar para Android a partir do WSL nao so
+# funciona como e o unico caminho no Windows, porque o bloco Android acima fixa
+# ANDROID_NDK_HOST_SYSTEM_NAME em linux-x86_64 - exige um host Linux. Sem esta
+# excecao o CMakeLists se contradiz: pede host Linux e recusa o Linux que existe
+# no Windows.
+#
+# A recusa continua valendo para o caso que ela foi escrita para pegar: tentar
+# construir o Mixxx *para Windows* de dentro do WSL, que produz binarios Linux.
+if(UNIX AND NOT APPLE AND NOT CMAKE_SYSTEM_NAME STREQUAL "Android")
   execute_process(
     COMMAND uname -r
     OUTPUT_VARIABLE UNAME_R
@@ -265,7 +273,7 @@ if(UNIX AND NOT APPLE)
   if(UNAME_R MATCHES ".*[Mm]icrosoft.*" OR UNAME_R MATCHES ".*WSL.*")
     message(
       FATAL_ERROR
-      "Building on Windows Subsystem for Linux (WSL) is not supported. If you want to build Mixxx from command line on Windows, you need to use the \"x64 Native Tools Command Prompt for VS 2022\"!"
+      "Building on Windows Subsystem for Linux (WSL) is not supported. If you want to build Mixxx from command line on Windows, you need to use the \"x64 Native Tools Command Prompt for VS 2022\"! (Cross-compiling for Android from WSL is supported: pass -DCMAKE_SYSTEM_NAME=Android.)"
     )
   endif()
 endif()
