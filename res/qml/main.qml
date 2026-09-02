@@ -109,6 +109,16 @@ ApplicationWindow {
             value = root.waveformOverviewTypeRgb;
         }
     }
+    // No celular, o layout de toque substitui a interface de desktop inteira.
+    // Nao e a mesma tela reduzida: traz menos controles e alvos grandes, porque
+    // a controladora faz o trabalho fino e a tela e operada em pe, com uma mao.
+    Loader {
+        active: root.isMobile
+        anchors.fill: parent
+        source: "MobileMain.qml"
+        z: 100
+    }
+
     Column {
         id: content
 
@@ -124,6 +134,7 @@ ApplicationWindow {
         anchors.centerIn: parent
         height: root.isMobile ? root.designHeight : root.height
         transformOrigin: Item.Center
+        visible: !root.isMobile
         width: root.isMobile ? root.designWidth : root.width
 
         scale: root.isMobile
