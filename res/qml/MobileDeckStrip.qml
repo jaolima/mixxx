@@ -17,6 +17,9 @@ Item {
     property int gap: 24
 
     readonly property var deckPlayer: Mixxx.PlayerManager.getPlayer(group)
+    // O player nao expoe titulo nem artista direto: so currentTrack, que muda a
+    // cada carga. Ler atraves dele e o que faz o nome aparecer.
+    readonly property var deckTrack: deckPlayer ? deckPlayer.currentTrack : null
 
     Mixxx.ControlProxy {
         id: playControl
@@ -65,8 +68,8 @@ Item {
                     color: Theme.deckTextColor
                     elide: Text.ElideRight
                     font.pixelSize: Math.round(14 * root.dp)
-                    text: root.deckPlayer && root.deckPlayer.title
-                        ? root.deckPlayer.title
+                    text: root.deckTrack && root.deckTrack.title
+                        ? root.deckTrack.title
                         : qsTr("sem faixa")
                 }
                 Text {
