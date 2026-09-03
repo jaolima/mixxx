@@ -31,6 +31,24 @@ Item {
 
     property bool libraryOpen: false
 
+    // Ao fechar a biblioteca, forcar a coleta de lixo do QML.
+    //
+    // Cada linha da lista cria um objeto de faixa do lado do JavaScript, e esse
+    // objeto segura a faixa viva na cache do Mixxx. E ao sair da cache que a
+    // faixa e gravada no banco - entao, enquanto o coletor nao passa, o que a
+    // analise descobriu fica so na memoria. Como o coletor roda quando quer, as
+    // primeiras faixas da lista podiam nunca ser gravadas: no aparelho, as de
+    // identificador 1 a 12 eram analisadas em toda execucao e nenhuma chegava
+    // ao banco.
+    // Depois da destruicao, e nao junto com ela: o Loader ainda esta desmontando
+    // as linhas quando este sinal chega, e um gc() aqui passa cedo demais - a
+    // primeira tentativa nao gravou nada por isso.
+    onLibraryOpenChanged: {
+        if (!libraryOpen) {
+            Qt.callLater(gc);
+        }
+    }
+
     Rectangle {
         anchors.fill: parent
         color: Theme.backgroundColor
