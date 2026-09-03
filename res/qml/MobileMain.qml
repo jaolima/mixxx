@@ -119,13 +119,9 @@ Item {
         // Lista propria, nao a tabela do desktop: aquela tem doze colunas e
         // linhas de 30 px, boas para o mouse e ilegiveis na mao.
         //
-        // Carregada sob demanda, e nao apenas escondida: cada linha da lista
-        // segura a faixa que mostra, e uma faixa segurada nao sai da cache
-        // global - e e ao sair dela que o Mixxx grava no banco o que a analise
-        // descobriu. Ficando instanciada para sempre, as faixas do alto da
-        // lista nunca eram gravadas, e o andamento sumia quando o Android
-        // matava o aplicativo. Fechando a biblioteca, elas sao liberadas e
-        // gravadas na hora.
+        // Carregada sob demanda, e nao apenas escondida: cada linha instancia
+        // uma capa e segura a faixa que mostra, e num aparelho isso nao deve
+        // ficar de pe enquanto se olha para as formas de onda.
         Loader {
             Layout.fillHeight: true
             Layout.fillWidth: true
