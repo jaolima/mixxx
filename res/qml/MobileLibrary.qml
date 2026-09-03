@@ -29,6 +29,9 @@ Item {
     // existe, entao vinha nula e a lista ficava vazia.
     readonly property var tracklist: sources.allTracks()
 
+    // Quantas faixas foram para a fila no ultimo pedido de analise.
+    property int queued: 0
+
     function search(text) {
         if (root.tracklist) {
             root.tracklist.search(text);
@@ -97,6 +100,22 @@ Item {
                     color: Theme.deckTextColor
                     font.pixelSize: Math.round(13 * root.dp)
                     text: trackListView.count + qsTr(" faixas")
+                }
+                // Analise da colecao. Sem ela as faixas ficam sem andamento nem
+                // tonalidade - as duas informacoes que fazem a lista servir para
+                // escolher a proxima musica.
+                MobileButton {
+                    Layout.preferredHeight: Math.round(36 * root.dp)
+                    Layout.preferredWidth: Math.round(130 * root.dp)
+                    checked: Mixxx.Library.analysisActive
+                    label: Mixxx.Library.analysisActive
+                        ? qsTr("ANALISANDO") : qsTr("ANALISAR")
+
+                    onClicked: {
+                        if (!Mixxx.Library.analysisActive && root.tracklist) {
+                            root.queued = root.tracklist.analyzeAll();
+                        }
+                    }
                 }
             }
         }

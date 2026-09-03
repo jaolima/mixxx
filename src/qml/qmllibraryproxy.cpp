@@ -6,6 +6,7 @@
 #include <cmath>
 
 #include "control/controlobject.h"
+#include "library/analysis/analysisfeature.h"
 #include "library/library.h"
 #include "library/library_prefs.h"
 #include "library/librarytablemodel.h"
@@ -174,6 +175,22 @@ QmlLibraryProxy::QmlLibraryProxy(QObject* parent)
                 deliverPendingLibraryScanSummary();
             });
     deliverPendingLibraryScanSummary();
+
+    // O estado da analise so existe dentro do AnalysisFeature. Sem repassa-lo
+    // aqui, a interface manda analisar e nao tem como dizer se algo esta
+    // acontecendo - numa colecao grande a espera e de varios minutos.
+    if (AnalysisFeature* pAnalysisFeature = s_pLibrary->analysisFeature()) {
+        connect(pAnalysisFeature,
+                &AnalysisFeature::analysisActive,
+                this,
+                [this](bool active) {
+                    if (m_analysisActive == active) {
+                        return;
+                    }
+                    m_analysisActive = active;
+                    emit analysisActiveChanged();
+                });
+    }
 #ifdef __ENGINEPRIME__
     m_pLibraryExporter = s_pLibrary->makeLibraryExporter(nullptr);
     connect(s_pLibrary.get(),

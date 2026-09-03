@@ -94,6 +94,7 @@ class QmlLibraryProxy : public QObject {
     Q_PROPERTY(QQmlListProperty<mixxx::qml::QmlLibrarySource> sources READ sources CONSTANT)
     Q_PROPERTY(mixxx::qml::QmlLibraryScannerProxy* scanner MEMBER m_pScanner CONSTANT)
     Q_PROPERTY(bool libraryScanActive READ libraryScanActive NOTIFY libraryScanActiveChanged)
+    Q_PROPERTY(bool analysisActive READ analysisActive NOTIFY analysisActiveChanged)
     Q_PROPERTY(bool enginePrimeExportAvailable READ enginePrimeExportAvailable CONSTANT)
     QML_NAMED_ELEMENT(Library)
     QML_SINGLETON
@@ -164,6 +165,9 @@ class QmlLibraryProxy : public QObject {
     }
 
     QmlLibraryTrackListModel* model() const;
+    bool analysisActive() const {
+        return m_analysisActive;
+    }
     bool libraryScanActive() const {
         return m_pTrackCollectionManager &&
                 m_pTrackCollectionManager->isLibraryScanActive();
@@ -196,6 +200,7 @@ class QmlLibraryProxy : public QObject {
 
   signals:
     void libraryScanActiveChanged();
+    void analysisActiveChanged();
     void libraryScanSummaryAvailable(
             const QString& title,
             const QString& text,
@@ -208,6 +213,7 @@ class QmlLibraryProxy : public QObject {
     /// This needs to be a plain pointer because it's used as a `Q_PROPERTY` member variable.
     QmlLibraryTrackListModel* m_pModelProperty;
     QmlLibraryScannerProxy* m_pScanner;
+    bool m_analysisActive{false};
     TrackCollectionManager* m_pTrackCollectionManager;
 
     static qsizetype sources_count(QQmlListProperty<QmlLibrarySource>* property);

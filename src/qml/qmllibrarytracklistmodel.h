@@ -71,6 +71,10 @@ class QmlLibraryTrackListModel : public QIdentityProxyModel {
     Q_INVOKABLE TrackModel::Capabilities getCapabilities() const;
     Q_INVOKABLE bool hasCapabilities(TrackModel::Capabilities caps) const;
     Q_INVOKABLE void search(const QString& searchText);
+    /// Manda analisar todas as faixas da lista e devolve quantas foram
+    /// enfileiradas. Uma emissao so, com a lista inteira: agendar faixa a
+    /// faixa a partir do QML seriam centenas de sinais para o mesmo fim.
+    Q_INVOKABLE int analyzeAll();
     QHash<int, QByteArray> roleNames() const override;
     Q_INVOKABLE QVariant headerData(int section,
             Qt::Orientation orientation,

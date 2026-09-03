@@ -8,10 +8,13 @@
 #include <QStandardItemModel>
 #include <QVariant>
 
+#include "analyzer/analyzerscheduledtrack.h"
 #include "library/basetracktablemodel.h"
+#include "library/library.h"
 #include "library/columncache.h"
 #include "moc_qmllibrarytracklistmodel.cpp"
 #include "qml/asyncimageprovider.h"
+#include "qml/qmllibraryproxy.h"
 #include "qml/qmllibrarytracklistcolumn.h"
 #include "qml_owned_ptr.h"
 #include "qmltrackproxy.h"
@@ -185,6 +188,34 @@ QmlTrackProxy* QmlLibraryTrackListModel::getTrack(int row) const {
         return {};
     }
     return make_qml_owned<QmlTrackProxy>(pTrackModel->getTrack(sourceModel()->index(row, 0)));
+}
+
+int QmlLibraryTrackListModel::analyzeAll() {
+    auto* const pTrackModel = dynamic_cast<TrackModel*>(sourceModel());
+    if (pTrackModel == nullptr) {
+        return 0;
+    }
+    Library* pLibrary = QmlLibraryProxy::get();
+    if (pLibrary == nullptr) {
+        return 0;
+    }
+
+    // Pelo identificador, sem carregar a faixa: getTrack() leria do disco cada
+    // uma das centenas de linhas so para descartar o resto.
+    QList<AnalyzerScheduledTrack> tracks;
+    const int rows = rowCount();
+    tracks.reserve(rows);
+    for (int row = 0; row < rows; ++row) {
+        const TrackId trackId = pTrackModel->getTrackId(sourceModel()->index(row, 0));
+        if (trackId.isValid()) {
+            tracks.append(trackId);
+        }
+    }
+    if (tracks.isEmpty()) {
+        return 0;
+    }
+    emit pLibrary->analyzeTracks(tracks);
+    return tracks.size();
 }
 
 TrackModel::Capabilities QmlLibraryTrackListModel::getCapabilities() const {

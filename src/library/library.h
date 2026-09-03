@@ -123,6 +123,12 @@ class Library: public QObject {
     std::unique_ptr<mixxx::LibraryExporter> makeLibraryExporter(QWidget* parent);
 #endif
 
+    /// Da acesso ao andamento da analise. Sem isto nao ha como uma
+    /// interface saber se ha analise correndo - o sinal existe so aqui dentro.
+    AnalysisFeature* analysisFeature() const {
+        return m_pAnalysisFeature;
+    }
+
   public slots:
     void slotShowTrackModel(QAbstractItemModel* model);
     void slotSwitchToView(const QString& view);
