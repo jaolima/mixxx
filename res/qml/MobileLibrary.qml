@@ -29,9 +29,6 @@ Item {
     // existe, entao vinha nula e a lista ficava vazia.
     readonly property var tracklist: sources.allTracks()
 
-    // Quantas faixas foram para a fila no ultimo pedido de analise.
-    property int queued: 0
-
     function search(text) {
         if (root.tracklist) {
             root.tracklist.search(text);
@@ -91,7 +88,7 @@ Item {
                     background: null
                     color: Theme.white
                     font.pixelSize: Math.round(15 * root.dp)
-                    placeholderText: qsTr("Buscar na coleção")
+                    placeholderText: qsTr("Search collection")
                     verticalAlignment: TextInput.AlignVCenter
 
                     onTextChanged: root.search(text)
@@ -99,7 +96,7 @@ Item {
                 Text {
                     color: Theme.deckTextColor
                     font.pixelSize: Math.round(13 * root.dp)
-                    text: trackListView.count + qsTr(" faixas")
+                    text: qsTr("%1 tracks").arg(trackListView.count)
                 }
                 // Analise da colecao. Sem ela as faixas ficam sem andamento nem
                 // tonalidade - as duas informacoes que fazem a lista servir para
@@ -109,11 +106,11 @@ Item {
                     Layout.preferredWidth: Math.round(130 * root.dp)
                     checked: Mixxx.Library.analysisActive
                     label: Mixxx.Library.analysisActive
-                        ? qsTr("ANALISANDO") : qsTr("ANALISAR")
+                        ? qsTr("ANALYZING") : qsTr("ANALYZE")
 
                     onClicked: {
                         if (!Mixxx.Library.analysisActive && root.tracklist) {
-                            root.queued = root.tracklist.analyzeAll();
+                            root.tracklist.analyzeAll();
                         }
                     }
                 }
@@ -180,7 +177,7 @@ Item {
                             color: Theme.white
                             elide: Text.ElideRight
                             font.pixelSize: Math.round(15 * root.dp)
-                            text: row.track && row.track.title ? row.track.title : qsTr("(sem titulo)")
+                            text: row.track && row.track.title ? row.track.title : qsTr("(untitled)")
                         }
                         Text {
                             Layout.fillWidth: true

@@ -109,9 +109,20 @@ SoundManager::SoundManager(
         // Precisa vir depois de checkConfig(): tanto ele quanto
         // devicesEnumerated() reavaliam a configuracao e chamam loadDefaults por
         // conta propria, desfazendo o que for feito antes deles.
+        // A API entra junto: ela pode ser a propria razao de nao ter sobrado
+        // saida alguma. No Android o PortAudio anuncia ALSA ao lado do Oboe, e
+        // e a ALSA que fica gravada - existe, passa em checkAPI() e nao tem um
+        // dispositivo sequer. Recarregar so os dispositivos mantinha o filtro
+        // errado e o aparelho tocava mudo em toda execucao.
+        //
+        // Reavaliar a API so aqui, e nao em checkAPI(), limita o efeito ao caso
+        // em que o programa ficaria mudo de qualquer forma. Uma placa ASIO
+        // desligada, por exemplo, continua com a API preservada enquanto
+        // houver outra saida configurada.
         qInfo() << "No configured output device is present; falling back to the "
                    "default output. The absent devices' configuration is kept.";
-        m_config.loadDefaults(this, SoundManagerConfig::DEVICES);
+        m_config.loadDefaults(this,
+                SoundManagerConfig::API | SoundManagerConfig::DEVICES);
     }
 
     // Don't write config to disk, yet -- it may be reset to defaults in case

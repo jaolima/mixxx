@@ -13,8 +13,8 @@ Item {
     id: root
 
     required property string group
-    property real dp: 3
-    property int gap: 24
+    required property real dp
+    required property int gap
 
     readonly property var deckPlayer: Mixxx.PlayerManager.getPlayer(group)
     // O player nao expoe titulo nem artista direto: so currentTrack, que muda a
@@ -70,7 +70,7 @@ Item {
                     font.pixelSize: Math.round(14 * root.dp)
                     text: root.deckTrack && root.deckTrack.title
                         ? root.deckTrack.title
-                        : qsTr("sem faixa")
+                        : qsTr("no track")
                 }
                 Text {
                     color: Theme.deckTextColor
@@ -102,19 +102,13 @@ Item {
             MobileButton {
                 Layout.fillHeight: true
                 Layout.fillWidth: true
+                checked: cueControl.value > 0
                 label: qsTr("CUE")
 
                 // CUE responde ao apertar e ao soltar, como no hardware:
                 // segurar toca a partir do ponto, soltar volta para ele.
-                onClicked: {
-                }
-
-                MouseArea {
-                    anchors.fill: parent
-
-                    onPressed: cueControl.value = 1
-                    onReleased: cueControl.value = 0
-                }
+                onPressed: cueControl.value = 1
+                onReleased: cueControl.value = 0
             }
             MobileButton {
                 Layout.fillHeight: true

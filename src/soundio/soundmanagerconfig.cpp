@@ -376,20 +376,7 @@ bool SoundManagerConfig::checkAPI() {
     VERIFY_OR_DEBUG_ASSERT(m_pSoundManager != nullptr) {
         return false;
     }
-    if (!m_pSoundManager->getHostAPIList().contains(m_api)) {
-        // "None" tambem falha aqui de proposito. Ela nao e uma API escolhida e
-        // sim a ausencia de escolha, e nesse estado nao ha como abrir saida
-        // alguma; aceita-la como valida deixava a configuracao gravada assim
-        // parada para sempre, porque checkConfig() so recarrega os padroes
-        // quando esta funcao reprova.
-        return false;
-    }
-    if (m_pSoundManager->getDeviceList(m_api, true, false).isEmpty()) {
-        // Existir nao basta: a API precisa oferecer alguma saida. No Android o
-        // PortAudio anuncia ALSA ao lado do Oboe, e ela nao tem dispositivo
-        // nenhum - todos pertencem ao Oboe. Bastava existir para a
-        // configuracao gravada com ALSA ser aprovada aqui e nunca mais ser
-        // revista, e o aparelho tocava mudo desde a primeira execucao.
+    if (!m_pSoundManager->getHostAPIList().contains(m_api) && m_api != kAPINone) {
         return false;
     }
     return true;

@@ -14,6 +14,11 @@ Rectangle {
     property string label: ""
 
     signal clicked
+    // Apertar e soltar separados: o CUE precisa dos dois, como no hardware.
+    // Sem eles, quem usa este botao tem de sobrepor um MouseArea proprio, que
+    // so funciona porque fica por cima do daqui - ordem que nada garante.
+    signal pressed
+    signal released
 
     color: mouseArea.pressed ? root.activeColor
                              : (root.checked ? root.activeColor : Theme.deckBackgroundColor)
@@ -44,5 +49,7 @@ Rectangle {
         anchors.fill: parent
 
         onClicked: root.clicked()
+        onPressed: root.pressed()
+        onReleased: root.released()
     }
 }

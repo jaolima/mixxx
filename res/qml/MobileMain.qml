@@ -36,6 +36,14 @@ Item {
         color: Theme.backgroundColor
     }
 
+    Component {
+        id: libraryComponent
+
+        MobileLibrary {
+            dp: root.dp
+        }
+    }
+
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: root.gap
@@ -56,7 +64,7 @@ Item {
                 Layout.preferredHeight: root.touchTarget
                 Layout.preferredWidth: Math.round(130 * root.dp)
                 checked: root.libraryOpen
-                label: qsTr("BIBLIOTECA")
+                label: qsTr("LIBRARY")
                 onClicked: root.libraryOpen = !root.libraryOpen
             }
             Item {
@@ -110,11 +118,20 @@ Item {
         //
         // Lista propria, nao a tabela do desktop: aquela tem doze colunas e
         // linhas de 30 px, boas para o mouse e ilegiveis na mao.
-        MobileLibrary {
+        //
+        // Carregada sob demanda, e nao apenas escondida: cada linha da lista
+        // segura a faixa que mostra, e uma faixa segurada nao sai da cache
+        // global - e e ao sair dela que o Mixxx grava no banco o que a analise
+        // descobriu. Ficando instanciada para sempre, as faixas do alto da
+        // lista nunca eram gravadas, e o andamento sumia quando o Android
+        // matava o aplicativo. Fechando a biblioteca, elas sao liberadas e
+        // gravadas na hora.
+        Loader {
             Layout.fillHeight: true
             Layout.fillWidth: true
             Layout.minimumHeight: Math.round(150 * root.dp)
-            dp: root.dp
+            active: root.libraryOpen
+            sourceComponent: libraryComponent
             visible: root.libraryOpen
         }
 
