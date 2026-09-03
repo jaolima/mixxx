@@ -376,7 +376,20 @@ bool SoundManagerConfig::checkAPI() {
     VERIFY_OR_DEBUG_ASSERT(m_pSoundManager != nullptr) {
         return false;
     }
-    if (!m_pSoundManager->getHostAPIList().contains(m_api) && m_api != kAPINone) {
+    if (!m_pSoundManager->getHostAPIList().contains(m_api)) {
+        // "None" tambem falha aqui de proposito. Ela nao e uma API escolhida e
+        // sim a ausencia de escolha, e nesse estado nao ha como abrir saida
+        // alguma; aceita-la como valida deixava a configuracao gravada assim
+        // parada para sempre, porque checkConfig() so recarrega os padroes
+        // quando esta funcao reprova.
+        return false;
+    }
+    if (m_pSoundManager->getDeviceList(m_api, true, false).isEmpty()) {
+        // Existir nao basta: a API precisa oferecer alguma saida. No Android o
+        // PortAudio anuncia ALSA ao lado do Oboe, e ela nao tem dispositivo
+        // nenhum - todos pertencem ao Oboe. Bastava existir para a
+        // configuracao gravada com ALSA ser aprovada aqui e nunca mais ser
+        // revista, e o aparelho tocava mudo desde a primeira execucao.
         return false;
     }
     return true;
@@ -581,7 +594,7 @@ void SoundManagerConfig::loadDefaults(SoundManager* soundManager, unsigned int f
     if (flags & SoundManagerConfig::API) {
         QList<QString> apiList = soundManager->getHostAPIList();
         if (!apiList.isEmpty()) {
-#ifdef __LINUX__
+#if defined(__LINUX__) && !defined(Q_OS_ANDROID)
             // Check if PipeWire checkbox selected
             if (m_pSoundManager->isPipewireSelected()) {
                 m_api = SoundManagerConfig::kAPIPipewire;
@@ -610,6 +623,30 @@ void SoundManagerConfig::loadDefaults(SoundManager* soundManager, unsigned int f
 #elif defined(Q_OS_MACOS)
             m_api = SoundManagerConfig::kAPICoreAudio;
 #endif
+            if (!apiList.contains(m_api) ||
+                    soundManager->getDeviceList(m_api, true, false).isEmpty()) {
+                // Nenhum ramo acima escolheu uma API que exista aqui. E o caso
+                // do Android: para o compilador ele e Linux, mas nao tem ALSA
+                // nem JACK - o PortAudio fala com o aparelho pelo Oboe. A API
+                // ficava em "ALSA", nenhum dispositivo casava com o filtro e
+                // nenhuma saida principal era conectada.
+                //
+                // O programa entao subia mudo, e o defeito era dificil de ver
+                // porque tudo o mais funcionava: a faixa carregava e a forma de
+                // onda andava. O Mixxx abria o "Network stream" como referencia
+                // de relogio, o que mantinha o motor girando sem som algum.
+                //
+                // A escolha e pela primeira API que tenha alguma saida, e
+                // nao pela primeira da lista: no Android a lista comeca pela
+                // ALSA, que existe e esta vazia. Assim tambem nao se depende do
+                // nome que o PortAudio da a API do Oboe.
+                for (const auto& api : std::as_const(apiList)) {
+                    if (!soundManager->getDeviceList(api, true, false).isEmpty()) {
+                        m_api = api;
+                        break;
+                    }
+                }
+            }
         }
     }
 

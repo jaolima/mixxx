@@ -3,6 +3,10 @@
 #include <signal.h>
 #include <stdio.h>
 
+#ifdef Q_OS_ANDROID
+#include <android/log.h>
+#endif
+
 #include <QByteArray>
 #include <QDateTime>
 #include <QFile>
@@ -253,6 +257,37 @@ QString rotateLogFilesAndGetFilePath(const QString& logDirPath) {
     return logFilePath;
 }
 
+#ifdef Q_OS_ANDROID
+/// Escreve a mensagem no logcat.
+///
+/// No Android o stderr nativo nao vai para lugar nenhum: nao chega ao logcat e
+/// nao ha terminal para le-lo. Sem isto o unico registro e o arquivo de log,
+/// dentro do diretorio privado do aplicativo - inacessivel num pacote que nao
+/// seja depuravel, que e justamente o caso de um pacote de producao. Na
+/// pratica, um problema em campo fica sem qualquer registro para consultar.
+inline void writeToAndroidLog(QtMsgType type, const QString& message) {
+    int priority = ANDROID_LOG_INFO;
+    switch (type) {
+    case QtDebugMsg:
+        priority = ANDROID_LOG_DEBUG;
+        break;
+    case QtInfoMsg:
+        priority = ANDROID_LOG_INFO;
+        break;
+    case QtWarningMsg:
+        priority = ANDROID_LOG_WARN;
+        break;
+    case QtCriticalMsg:
+        priority = ANDROID_LOG_ERROR;
+        break;
+    case QtFatalMsg:
+        priority = ANDROID_LOG_FATAL;
+        break;
+    }
+    __android_log_write(priority, "Mixxx", message.toLocal8Bit().constData());
+}
+#endif
+
 /// Handles writing to stderr and the log file.
 inline void writeToLog(
         QtMsgType type,
@@ -274,6 +309,14 @@ inline void writeToLog(
     }
     if (flags & WriteFlag::File) {
         writeToFile(type, message, threadName, flush);
+#ifdef Q_OS_ANDROID
+        // Espelha o arquivo, e nao o stderr: no Android o logcat e o unico
+        // registro que se consegue ler de fora, entao tem de receber o mesmo
+        // que o arquivo - que guarda tudo. Preso ao stderr, ficaria so com o
+        // que o nivel de log em uso deixa passar, e no aparelho isso exclui
+        // justamente as linhas de depuracao.
+        writeToAndroidLog(type, message);
+#endif
     }
 }
 
