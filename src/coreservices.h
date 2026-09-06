@@ -119,6 +119,15 @@ class CoreServices : public QObject {
     /// Tear down CoreServices that were previously initialized by `initialize()`.
     void finalize();
 
+    /// Grava no banco o que so estaria gravado ao encerrar.
+    ///
+    /// No Android o sistema mata o processo sem encerramento limpo, entao o
+    /// caminho normal - gravar a faixa quando ela sai da cache - nunca chega a
+    /// correr para o que ainda estiver em uso. Medido no aparelho: das 275
+    /// faixas analisadas, as 12 que a lista mantinha montadas eram reanalisadas
+    /// a cada abertura porque nenhuma chegava ao banco.
+    void flushPersistentState();
+
     std::shared_ptr<SettingsManager> m_pSettingsManager;
     std::shared_ptr<mixxx::ControlIndicatorTimer> m_pControlIndicatorTimer;
     std::shared_ptr<EffectsManager> m_pEffectsManager;
@@ -147,6 +156,15 @@ class CoreServices : public QObject {
     Timer m_runtime_timer;
     const CmdlineArgs& m_cmdlineArgs;
     bool m_isInitialized;
+    /// Guardada para ser cortada no inicio de finalize(). As conexoes de um
+    /// QObject so caem no destrutor, que roda depois - sem cortar aqui, um
+    /// sinal de mudanca de estado chegando durante o encerramento entraria num
+    /// flush com os gerenciadores ja destruidos.
+    QMetaObject::Connection m_appStateConnection;
+    /// Serve para gravar uma vez so por ida a segundo plano: a mudanca de
+    /// estado chega mais de uma vez seguida, e o segundo flush percorreria a
+    /// cache inteira sem nada para gravar.
+    bool m_appWasActive;
 };
 
 } // namespace mixxx

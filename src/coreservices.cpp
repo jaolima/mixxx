@@ -51,6 +51,7 @@
 #include "qml/qmlsoundmanagerproxy.h"
 #endif
 #include "soundio/soundmanager.h"
+#include "track/globaltrackcache.h"
 #include "sources/soundsourceproxy.h"
 #include "util/clipboard.h"
 #include "util/db/dbconnectionpooled.h"
@@ -361,7 +362,8 @@ namespace mixxx {
 CoreServices::CoreServices(const CmdlineArgs& args, QApplication* pApp)
         : m_runtime_timer(QLatin1String("CoreServices::runtime")),
           m_cmdlineArgs(args),
-          m_isInitialized(false) {
+          m_isInitialized(false),
+          m_appWasActive(true) {
     m_runtime_timer.start();
     mixxx::Time::start();
     ScopedTimer t(QStringLiteral("CoreServices::CoreServices"));
@@ -793,6 +795,26 @@ void CoreServices::initialize(QApplication* pApp) {
 
     m_isInitialized = true;
 
+#if defined(Q_OS_ANDROID)
+    // No Android nao ha encerramento limpo: o sistema congela e depois mata o
+    // processo. Ir para segundo plano e o ultimo momento garantido para gravar,
+    // e "Inactive" ja chega na primeira pausa.
+    m_appStateConnection = connect(qApp,
+            &QGuiApplication::applicationStateChanged,
+            this,
+            [this](Qt::ApplicationState state) {
+                if (state == Qt::ApplicationActive) {
+                    m_appWasActive = true;
+                    return;
+                }
+                if (!m_appWasActive) {
+                    return;
+                }
+                m_appWasActive = false;
+                flushPersistentState();
+            });
+#endif
+
     ControllerScriptEngineBase::registerPlayerManager(getPlayerManager());
 
 #ifdef MIXXX_USE_QML
@@ -897,11 +919,67 @@ std::shared_ptr<QDialog> CoreServices::makeDlgPreferences() const {
     return pDlgPreferences;
 }
 
+void CoreServices::flushPersistentState() {
+    if (!m_isInitialized || !m_pTrackCollectionManager) {
+        return;
+    }
+    // Grava na thread principal, que e onde saveTrack() exige estar.
+    DEBUG_ASSERT_QOBJECT_THREAD_AFFINITY(m_pTrackCollectionManager.get());
+
+    // Duas fases, com o cadeado solto entre elas.
+    //
+    // O mutex da cache nao e recursivo, e destruir a ultima referencia de uma
+    // faixa dispara a evicao, que torna a trava. Segurar o cadeado enquanto um
+    // TrackPointer pode morrer e travar o programa contra si mesmo - por isso o
+    // ponteiro do laco nasce e morre dentro do corpo, com o cadeado ja solto.
+    //
+    // Mesma forma ja usada em DlgReplaceCueColor para descarregar a cache.
+    QSet<TrackId> cachedTrackIds;
+    {
+        GlobalTrackCacheLocker cacheLocker;
+        cachedTrackIds = cacheLocker.getCachedTrackIds();
+    }
+
+    int savedCount = 0;
+    for (const TrackId& trackId : std::as_const(cachedTrackIds)) {
+        TrackPointer pTrack;
+        {
+            GlobalTrackCacheLocker cacheLocker;
+            pTrack = cacheLocker.lookupTrackById(trackId);
+        }
+        if (!pTrack) {
+            continue;
+        }
+        // Grava sem evictar: a faixa continua em uso por quem a segura. O modo
+        // e o Deferred, entao isto nao escreve etiquetas no arquivo - so o
+        // banco - e faixas sem modificacao sao puladas pelo proprio saveTrack.
+        if (m_pTrackCollectionManager->saveTrack(pTrack) ==
+                TrackCollectionManager::SaveTrackResult::Saved) {
+            ++savedCount;
+        }
+    }
+
+    // A configuracao tambem so era gravada ao encerrar. Vale o que ja esta no
+    // ConfigObject: os controles persistentes so escrevem nele quando sao
+    // destruidos, e isso continua sem acontecer quando o sistema mata o
+    // processo.
+    if (m_pSettingsManager) {
+        m_pSettingsManager->save();
+    }
+
+    qInfo() << "Flushed persistent state:" << savedCount << "of"
+            << cachedTrackIds.size() << "cached tracks saved";
+}
+
 void CoreServices::finalize() {
     VERIFY_OR_DEBUG_ASSERT(m_isInitialized) {
         qDebug() << "Skipping CoreServices finalization because it was never initialized.";
         return;
     }
+
+    // Antes de qualquer destruicao: a partir daqui os gerenciadores vao embora,
+    // e um flush disparado no meio disso acessaria o que ja nao existe.
+    disconnect(m_appStateConnection);
 
     Timer t("CoreServices::~CoreServices");
     t.start();
