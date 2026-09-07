@@ -3,6 +3,7 @@
 #include <QApplication>
 #include <QDir>
 #include <QIODevice>
+#include <QSaveFile>
 #include <QTextStream>
 #include <QtDebug>
 
@@ -13,7 +14,6 @@
 
 // TODO(rryan): Move to a utility file.
 namespace {
-const QString kTempFilenameExtension = QStringLiteral(".tmp");
 const QString kCMakeCacheFile = QStringLiteral("CMakeCache.txt");
 const QLatin1String kSourceDirLine = QLatin1String("mixxx_SOURCE_DIR:STATIC=");
 
@@ -250,15 +250,23 @@ void ConfigObject<ValueType>::reopen(const QString& file) {
 template<class ValueType>
 bool ConfigObject<ValueType>::save() {
     QReadLocker lock(&m_valuesLock); // we only read the m_values here.
-    QFile tmpFile(m_filename + kTempFilenameExtension);
-    if (!QDir(QFileInfo(tmpFile).absolutePath()).exists()) {
-        QDir().mkpath(QFileInfo(tmpFile).absolutePath());
+    // QSaveFile writes to a temporary file and swaps it into place atomically.
+    //
+    // Doing that by hand - remove the old file, then rename the new one over it
+    // - leaves a window in which the configuration file does not exist at all.
+    // Losing the process in that window costs the whole file, even though the
+    // good content is sitting right next to it. On Android that is not a remote
+    // possibility: the save happens precisely when the system is about to kill
+    // the process.
+    QSaveFile file(m_filename);
+    if (!QDir(QFileInfo(file.fileName()).absolutePath()).exists()) {
+        QDir().mkpath(QFileInfo(file.fileName()).absolutePath());
     }
-    if (!tmpFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        qWarning() << "Could not write config file: " << tmpFile.fileName();
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        qWarning() << "Could not write config file: " << file.fileName();
         return false;
     }
-    QTextStream stream(&tmpFile);
+    QTextStream stream(&file);
     // UTF-8 is the default in Qt6.
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
     DEBUG_ASSERT(stream.encoding() == QStringConverter::Utf8);
@@ -287,31 +295,23 @@ bool ConfigObject<ValueType>::save() {
 
     stream.flush();
     // the stream is usually longer, depending on the amount of encoded data.
-    if (stream.pos() < minLength || QFileInfo(tmpFile).size() != stream.pos()) {
-        qWarning().nospace() << "Error while writing configuration file: " << tmpFile.fileName();
+    if (stream.pos() < minLength || file.size() != stream.pos()) {
+        qWarning().nospace() << "Error while writing configuration file: " << file.fileName();
+        // Discard the half-written file instead of committing it: the one
+        // already on disk is worth more than a truncated replacement.
+        file.cancelWriting();
         return false;
     }
-
-    tmpFile.close();
-    if (tmpFile.error() !=
-            QFile::NoError) { // could be better... should actually say what the error was..
+    if (file.error() != QFile::NoError) {
         qWarning().nospace() << "Error while writing configuration file: "
-                             << tmpFile.fileName() << ": " << tmpFile.errorString();
+                             << file.fileName() << ": " << file.errorString();
+        file.cancelWriting();
         return false;
     }
 
-    QFile oldConfig(m_filename);
-    // Trying to remove a file that does not exist would fail
-    if (oldConfig.exists()) {
-        if (!oldConfig.remove()) {
-            qWarning().nospace() << "Could not remove old config file: "
-                                 << oldConfig.fileName() << ": " << oldConfig.errorString();
-            return false;
-        }
-    }
-    if (!tmpFile.rename(m_filename)) {
-        qWarning().nospace() << "Could not rename tmp file to config file: "
-                             << tmpFile.fileName() << ": " << tmpFile.errorString();
+    if (!file.commit()) {
+        qWarning().nospace() << "Could not commit configuration file: "
+                             << file.fileName() << ": " << file.errorString();
         return false;
     }
 
