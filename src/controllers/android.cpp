@@ -7,6 +7,8 @@
 #include <QtJniTypes>
 #include <cstddef>
 
+#include "controllers/midi/androidmidicontroller.h"
+
 namespace mixxx {
 namespace android {
 std::mutex s_androidLock = {};
@@ -114,16 +116,46 @@ void usbDeviceAccessResult(QJniObject device, bool granted) {
 } // namespace mixxx
 
 Q_DECLARE_JNI_CLASS(UsbPermissionClass, "org/mixxx/UsbPermission")
+Q_DECLARE_JNI_CLASS(MidiBridgeClass, "org/mixxx/MidiBridge")
 
 void usbDeviceAccessResult(JNIEnv*, jobject, jobject device, jboolean granted) {
     mixxx::android::usbDeviceAccessResult(device, granted);
 }
 Q_DECLARE_JNI_NATIVE_METHOD(usbDeviceAccessResult)
 
+// The MIDI bridge hands back the controller's address, so the bytes reach the
+// object they belong to without a lookup table.
+void onMidiReceived(JNIEnv* env, jobject, jlong handle, jbyteArray data, jint offset, jint count) {
+    auto* pController = reinterpret_cast<AndroidMidiController*>(static_cast<quintptr>(handle));
+    if (pController == nullptr || count <= 0) {
+        return;
+    }
+    QByteArray bytes(count, Qt::Uninitialized);
+    env->GetByteArrayRegion(data, offset, count, reinterpret_cast<jbyte*>(bytes.data()));
+    pController->handleIncoming(bytes);
+}
+Q_DECLARE_JNI_NATIVE_METHOD(onMidiReceived)
+
+void onDeviceOpened(JNIEnv*, jobject, jlong handle, jboolean success) {
+    auto* pController = reinterpret_cast<AndroidMidiController*>(static_cast<quintptr>(handle));
+    if (pController == nullptr) {
+        return;
+    }
+    pController->handleOpened(success);
+}
+Q_DECLARE_JNI_NATIVE_METHOD(onDeviceOpened)
+
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM*, void*) {
     QJniEnvironment env;
     env.registerNativeMethods<QtJniTypes::UsbPermissionClass>({
             Q_JNI_NATIVE_METHOD(usbDeviceAccessResult),
+    });
+    // Registered from here because a library may only have one JNI_OnLoad, and
+    // this is it. That is also why this file must build whenever Android does,
+    // not only when the HID option happens to be on.
+    env.registerNativeMethods<QtJniTypes::MidiBridgeClass>({
+            Q_JNI_NATIVE_METHOD(onMidiReceived),
+            Q_JNI_NATIVE_METHOD(onDeviceOpened),
     });
     return JNI_VERSION_1_6;
 }

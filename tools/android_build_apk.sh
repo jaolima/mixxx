@@ -38,8 +38,14 @@ UNSIGNED_APK="build/android-build/build/outputs/apk/release/android-build-releas
 # -c compares checksums instead of modification times. Files arriving from
 # another filesystem carry different timestamps, and without this every build
 # would recompile the whole tree.
+#
+# packaging/ matters as much as the others: it is the Android package source
+# directory (QT_ANDROID_PACKAGE_SOURCE_DIR), so the manifest and any Java class
+# live there. Leaving it out means a new Java file never reaches the APK while
+# the build still reports success.
 rsync -rc --delete "$SRC/src/" src/
 rsync -rc --delete "$SRC/res/" res/
+rsync -rc --delete "$SRC/packaging/" packaging/
 rsync -rc "$SRC/CMakeLists.txt" CMakeLists.txt
 
 # set +u around the sourcing, and stderr kept: android_buildenv.sh tests

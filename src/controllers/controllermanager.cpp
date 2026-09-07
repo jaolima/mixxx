@@ -19,6 +19,9 @@
 #ifdef __PORTMIDI__
 #include "controllers/midi/portmidienumerator.h"
 #endif
+#ifdef __ANDROIDMIDI__
+#include "controllers/midi/androidmidienumerator.h"
+#endif
 
 #ifdef __HSS1394__
 #include "controllers/midi/hss1394enumerator.h"
@@ -172,6 +175,9 @@ void ControllerManager::slotInitialize() {
         auto locker = lockMutex(&m_mutex);
 #ifdef __PORTMIDI__
         m_enumerators.push_back(std::make_unique<PortMidiEnumerator>(m_pConfig));
+#endif
+#ifdef __ANDROIDMIDI__
+    m_enumerators.push_back(std::make_unique<AndroidMidiEnumerator>());
 #endif
 #ifdef __HSS1394__
         m_enumerators.push_back(std::make_unique<Hss1394Enumerator>());

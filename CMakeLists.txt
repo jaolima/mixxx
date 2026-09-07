@@ -2039,6 +2039,22 @@ set_source_files_properties(
   PROPERTIES SKIP_PRECOMPILE_HEADERS ON
 )
 
+# Android has no MIDI transport of its own: PortMidi does not support it, so
+# nothing ever delivered bytes even though the whole MIDI stack above the
+# transport already builds here. These two files are that transport, and
+# android.cpp comes along because it owns the single JNI_OnLoad they register
+# through - it used to be compiled only when the HID option was on.
+if(ANDROID)
+  target_sources(
+    mixxx-lib
+    PRIVATE
+      src/controllers/android.cpp
+      src/controllers/midi/androidmidicontroller.cpp
+      src/controllers/midi/androidmidienumerator.cpp
+  )
+  target_compile_definitions(mixxx-lib PUBLIC __ANDROIDMIDI__)
+endif()
+
 set_target_properties(
   mixxx-lib
   PROPERTIES AUTOMOC ON AUTOUIC ON CXX_CLANG_TIDY "${CLANG_TIDY}"
@@ -5327,7 +5343,6 @@ if(HID)
   )
 
   if(ANDROID)
-    target_sources(mixxx-lib PRIVATE src/controllers/android.cpp)
   else()
     # Android doesn't support QWidget and is not able to compile this manager due to compiler lacking support for structure binding (error: capturing a structured binding is not yet supported)
     target_sources(
