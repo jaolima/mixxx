@@ -6,9 +6,12 @@ import QtQuick.Layouts
 // Um deck no layout de toque: identificacao da faixa em cima, transporte
 // embaixo.
 //
-// Traz so PLAY, CUE e SYNC. EQ, filtro, pads e jog ficam de fora de proposito -
-// a controladora faz tudo isso melhor do que o vidro, e cada botao a mais aqui
-// encolhe os que importam.
+// Traz PLAY, CUE, PFL e SYNC. EQ, filtro, pads e jog ficam de fora de
+// proposito - a controladora faz tudo isso melhor do que o vidro, e cada botao
+// a mais aqui encolhe os que importam.
+//
+// O PFL entra porque nao tem substituto: e por ele que a proxima faixa toca no
+// fone antes de ir para o ar, e sem ele o canal do fone recebe silencio.
 Item {
     id: root
 
@@ -44,6 +47,12 @@ Item {
 
         group: root.group
         key: "bpm"
+    }
+    Mixxx.ControlProxy {
+        id: pflControl
+
+        group: root.group
+        key: "pfl"
     }
 
     ColumnLayout {
@@ -109,6 +118,21 @@ Item {
                 // segurar toca a partir do ponto, soltar volta para ele.
                 onPressed: cueControl.value = 1
                 onReleased: cueControl.value = 0
+            }
+            // Monitoracao no fone. Sem ela o canal do fone recebe silencio de
+            // proposito, e numa controladora com saida propria isso aparece
+            // como "o fone nao funciona" - foi o que aconteceu no aparelho.
+            // Escutar a proxima faixa antes de solta-la e o gesto que define
+            // mixar; nao havia como faze-lo pela tela.
+            MobileButton {
+                Layout.fillHeight: true
+                Layout.preferredWidth: Math.round(90 * root.dp)
+                checked: pflControl.value > 0
+                label: qsTr("PFL")
+
+                onClicked: {
+                    pflControl.value = pflControl.value > 0 ? 0 : 1;
+                }
             }
             MobileButton {
                 Layout.fillHeight: true
