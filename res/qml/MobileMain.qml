@@ -88,6 +88,68 @@ Item {
             Item {
                 Layout.fillWidth: true
             }
+
+            // Barramento do fone. Sem estes dois o fone e uma caixa preta: nao
+            // da para saber se o silencio vem do volume, da mistura ou de nao
+            // haver deck em monitoracao. Sao os controles que uma controladora
+            // traz em botao fisico e que a tela precisa ter quando ela nao
+            // esta ligada.
+            Mixxx.ControlProxy {
+                id: headGainControl
+
+                group: "[Master]"
+                key: "headGain"
+            }
+            Mixxx.ControlProxy {
+                id: headMixControl
+
+                group: "[Master]"
+                key: "headMix"
+            }
+
+            Text {
+                color: Theme.deckTextColor
+                font.pixelSize: Math.round(12 * root.dp)
+                text: qsTr("CUE")
+            }
+            Skin.MobileSlider {
+                Layout.preferredHeight: root.touchTarget
+                Layout.preferredWidth: Math.round(150 * root.dp)
+                dp: root.dp
+                from: -1
+                to: 1
+                value: headMixControl.value
+
+                onMoved: (v) => {
+                    headMixControl.value = v;
+                }
+            }
+            Text {
+                color: Theme.deckTextColor
+                font.pixelSize: Math.round(12 * root.dp)
+                text: qsTr("MAIN")
+            }
+            Skin.MobileSlider {
+                Layout.preferredHeight: root.touchTarget
+                Layout.preferredWidth: Math.round(150 * root.dp)
+                dp: root.dp
+                from: 0
+                to: 4
+                value: headGainControl.value
+
+                onMoved: (v) => {
+                    headGainControl.value = v;
+                }
+            }
+            Text {
+                color: Theme.deckTextColor
+                font.pixelSize: Math.round(12 * root.dp)
+                text: qsTr("VOL")
+            }
+
+            Item {
+                Layout.preferredWidth: Math.round(10 * root.dp)
+            }
             Text {
                 color: Theme.deckTextColor
                 font.pixelSize: Math.round(15 * root.dp)
