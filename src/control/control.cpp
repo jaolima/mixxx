@@ -85,13 +85,57 @@ ControlDoublePrivate::~ControlDoublePrivate() {
     s_qCOHash.remove(m_key);
     s_qCOHashMutex.unlock();
 
-    if (m_bPersistInConfiguration) {
-        UserSettingsPointer pConfig = s_pUserConfig;
-        VERIFY_OR_DEBUG_ASSERT(pConfig) {
-            return;
-        }
-        pConfig->set(m_key, QString::number(get()));
+    saveToUserConfig();
+}
+
+bool ControlDoublePrivate::saveToUserConfig() const {
+    // The config is only looked up for a control that actually persists: a
+    // plain control being destroyed must not assert just because the user
+    // configuration is already gone.
+    if (!m_bPersistInConfiguration) {
+        return false;
     }
+    UserSettingsPointer pConfig = s_pUserConfig;
+    VERIFY_OR_DEBUG_ASSERT(pConfig) {
+        return false;
+    }
+    pConfig->set(m_key, QString::number(get()));
+    return true;
+}
+
+// static
+int ControlDoublePrivate::saveAllPersistentValues() {
+    UserSettingsPointer pConfig = s_pUserConfig;
+    VERIFY_OR_DEBUG_ASSERT(pConfig) {
+        return 0;
+    }
+
+    // Collect under the lock, write outside it. Holding s_qCOHashMutex across
+    // hundreds of ConfigObject writes would park every thread that creates a
+    // control behind them - including the controller thread, which creates one
+    // lazily per script binding, so MIDI input would stall for the duration.
+    QList<QSharedPointer<ControlDoublePrivate>> controls;
+    {
+        MMutexLocker locker(&s_qCOHashMutex);
+        controls.reserve(s_qCOHash.size());
+        for (auto it = s_qCOHash.constBegin(); it != s_qCOHash.constEnd(); ++it) {
+            auto pControl = it.value().lock();
+            if (pControl) {
+                controls.append(std::move(pControl));
+            }
+        }
+    }
+
+    // An aliased control sits in the registry under two keys, so it is written
+    // twice here. Both writes use its own key and its own value, so the second
+    // one only repeats the first.
+    int persisted = 0;
+    for (const auto& pControl : std::as_const(controls)) {
+        if (pControl->saveToUserConfig()) {
+            ++persisted;
+        }
+    }
+    return persisted;
 }
 
 //static
@@ -220,13 +264,16 @@ QList<QSharedPointer<ControlDoublePrivate>> ControlDoublePrivate::getAllInstance
     QList<QSharedPointer<ControlDoublePrivate>> result;
     MMutexLocker locker(&s_qCOHashMutex);
     result.reserve(s_qCOHash.size());
-    for (auto it = s_qCOHash.constBegin(); it != s_qCOHash.constEnd(); ++it) {
+    for (auto it = s_qCOHash.constBegin(); it != s_qCOHash.constEnd();) {
         auto pControl = it.value().lock();
         if (pControl) {
             result.append(std::move(pControl));
+            ++it;
         } else {
-            // The weak pointer has become invalid and can be cleaned up
-            s_qCOHash.erase(it);
+            // The weak pointer has become invalid and can be cleaned up.
+            // Take the iterator erase() returns: the old one is invalid, and
+            // advancing it afterwards is undefined behaviour.
+            it = s_qCOHash.erase(it);
         }
     }
     return result;
