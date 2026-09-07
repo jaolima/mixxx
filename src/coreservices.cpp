@@ -12,6 +12,7 @@
 #include "broadcast/broadcastmanager.h"
 #endif
 #include "control/controlindicatortimer.h"
+#include "control/control.h"
 #include "controllers/controllermanager.h"
 #include "controllers/keyboard/keyboardeventfilter.h"
 #include "controllers/scripting/controllerscriptenginebase.h"
@@ -959,16 +960,24 @@ void CoreServices::flushPersistentState() {
         }
     }
 
-    // A configuracao tambem so era gravada ao encerrar. Vale o que ja esta no
-    // ConfigObject: os controles persistentes so escrevem nele quando sao
-    // destruidos, e isso continua sem acontecer quando o sistema mata o
-    // processo.
+    // A configuracao tambem so era gravada ao encerrar, e gravar so o que ja
+    // estava no ConfigObject nao bastava: um controle persistente escreve nele
+    // apenas quando e destruido, e no Android isso nunca acontece. O arquivo
+    // saia com os valores da abertura, e tudo o que a sessao mudou se perdia.
+    //
+    // A varredura repete o que o encerramento faria, controle a controle, sem
+    // destruir nada. De proposito ela nao julga o que gravar: se um valor esta
+    // errado ao encerrar - e alguns estao, porque codigo de execucao escreve
+    // por cima de preferencias - ele ja estava errado antes disto, e consertar
+    // isso e outro assunto, no controle culpado e nao aqui.
+    const int persistedControls = ControlDoublePrivate::saveAllPersistentValues();
     if (m_pSettingsManager) {
         m_pSettingsManager->save();
     }
 
     qInfo() << "Flushed persistent state:" << savedCount << "of"
-            << cachedTrackIds.size() << "cached tracks saved";
+            << cachedTrackIds.size() << "cached tracks saved,"
+            << persistedControls << "persistent controls written";
 }
 
 void CoreServices::finalize() {

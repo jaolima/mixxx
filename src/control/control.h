@@ -66,6 +66,16 @@ class ControlDoublePrivate : public QObject {
 
     static QHash<ConfigKey, ConfigKey> getControlAliases();
 
+    /// Writes the current value of every persistent control into the user
+    /// configuration, without destroying the controls.
+    ///
+    /// This is the same write the destructor performs, hoisted out so it can
+    /// also happen while the controls are still alive. On Android the process
+    /// is killed without running destructors, so that write would never happen.
+    ///
+    /// Returns how many controls were written.
+    static int saveAllPersistentValues();
+
     const QString& name() const {
         return m_name;
     }
@@ -208,6 +218,12 @@ class ControlDoublePrivate : public QObject {
     // memory alignment in this often used class.
 
     bool m_confirmRequired;
+
+    /// Performs the persist write for this control, or nothing if it is not a
+    /// persistent one. Single place where a value is transcribed into the
+    /// configuration, so the shutdown path and the flush path cannot drift.
+    /// Returns true if this control persists and was written.
+    bool saveToUserConfig() const;
 
     // Whether the control should persist in the Mixxx user configuration. The
     // value is loaded from configuration when the control is created and

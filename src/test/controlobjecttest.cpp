@@ -3,6 +3,7 @@
 #include <QtDebug>
 #include <memory>
 
+#include "control/control.h"
 #include "control/controlobject.h"
 #include "test/mixxxtest.h"
 
@@ -84,6 +85,51 @@ TEST_F(ControlObjectTest, Persistence_ValidValue) {
 
     ControlObject co(ck, true, false, true, 3.0);
     EXPECT_DOUBLE_EQ(5.0, co.get());
+}
+
+TEST_F(ControlObjectTest, Persistence_FlushWhileAlive) {
+    ConfigKey ck("[Test]", "persist_flush");
+    ControlObject co(ck, true, false, true, 3.0);
+    co.set(7.0);
+
+    // Until the sweep runs, the new value exists only in the control: a
+    // persistent control writes to the configuration when it is destroyed, and
+    // on Android that never happens.
+    EXPECT_TRUE(m_pConfig->getValueString(ck).isEmpty());
+
+    ControlDoublePrivate::saveAllPersistentValues();
+
+    EXPECT_EQ(QStringLiteral("7"), m_pConfig->getValueString(ck));
+    // The control is untouched by the sweep and stays usable.
+    EXPECT_DOUBLE_EQ(7.0, co.get());
+}
+
+TEST_F(ControlObjectTest, Persistence_FlushIgnoresNonPersistent) {
+    ConfigKey ck("[Test]", "no_persist_flush");
+    ControlObject co(ck, true, false, false, 3.0);
+    co.set(7.0);
+
+    ControlDoublePrivate::saveAllPersistentValues();
+
+    EXPECT_TRUE(m_pConfig->getValueString(ck).isEmpty());
+}
+
+TEST_F(ControlObjectTest, Persistence_FlushMatchesDestruction) {
+    // The sweep must produce exactly what destroying the control would, or the
+    // two paths drift and Android ends up with a different file than desktop.
+    ConfigKey ckFlushed("[Test]", "persist_flushed");
+    ConfigKey ckDestroyed("[Test]", "persist_destroyed");
+
+    ControlObject flushed(ckFlushed, true, false, true, 3.0);
+    flushed.set(0.125);
+    {
+        ControlObject destroyed(ckDestroyed, true, false, true, 3.0);
+        destroyed.set(0.125);
+    }
+
+    ControlDoublePrivate::saveAllPersistentValues();
+
+    EXPECT_EQ(m_pConfig->getValueString(ckDestroyed), m_pConfig->getValueString(ckFlushed));
 }
 
 } // namespace
