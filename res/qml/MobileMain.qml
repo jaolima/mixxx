@@ -26,8 +26,10 @@ Item {
     readonly property int touchTarget: Math.round(48 * dp)
     readonly property int gap: Math.round(6 * dp)
     // A faixa de transporte tem altura fixa e modesta; o resto da tela sobra
-    // para as ondas.
-    readonly property int deckStripHeight: Math.round(88 * dp)
+    // para as ondas. Encolheu de 88dp quando o titulo saiu dela para o
+    // cabecalho: a altura tinha sido dimensionada para duas linhas e, com uma
+    // so, os botoes cresciam e comiam a forma de onda.
+    readonly property int deckStripHeight: Math.round(56 * dp)
 
     property bool libraryOpen: false
 
@@ -182,20 +184,37 @@ Item {
             Repeater {
                 model: ["[Channel1]", "[Channel2]"]
 
-                Rectangle {
+                // Cabecalho e onda como um bloco so: o que se le sobre a faixa
+                // fica junto do desenho dela, e nao numa fileira separada onde
+                // seria preciso conferir de qual deck e cada coisa.
+                ColumnLayout {
                     required property string modelData
 
                     Layout.fillHeight: true
                     Layout.fillWidth: true
                     Layout.minimumHeight: Math.round(70 * root.dp)
-                    border.color: Theme.deckBackgroundColor
-                    border.width: 1
-                    color: "#0a0a0a"
+                    spacing: Math.round(3 * root.dp)
 
-                    Skin.WaveformDisplay {
-                        anchors.fill: parent
-                        anchors.margins: 1
+                    Skin.MobileDeckHeader {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: Math.round(46 * root.dp)
+                        dp: root.dp
                         group: parent.modelData
+                    }
+
+                    Rectangle {
+                        Layout.fillHeight: true
+                        Layout.fillWidth: true
+                        Layout.minimumHeight: Math.round(50 * root.dp)
+                        border.color: Theme.deckBackgroundColor
+                        border.width: 1
+                        color: "#0a0a0a"
+
+                        Skin.WaveformDisplay {
+                            anchors.fill: parent
+                            anchors.margins: 1
+                            group: parent.parent.modelData
+                        }
                     }
                 }
             }

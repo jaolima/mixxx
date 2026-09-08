@@ -3,8 +3,7 @@ import Mixxx 1.0 as Mixxx
 import QtQuick
 import QtQuick.Layouts
 
-// Um deck no layout de toque: identificacao da faixa em cima, transporte
-// embaixo.
+// O transporte de um deck no layout de toque.
 //
 // Traz PLAY, CUE, PFL e SYNC. EQ, filtro, pads e jog ficam de fora de
 // proposito - a controladora faz tudo isso melhor do que o vidro, e cada botao
@@ -12,17 +11,15 @@ import QtQuick.Layouts
 //
 // O PFL entra porque nao tem substituto: e por ele que a proxima faixa toca no
 // fone antes de ir para o ar, e sem ele o canal do fone recebe silencio.
+//
+// Titulo, andamento e tonalidade nao estao aqui: ficam no cabecalho, junto da
+// forma de onda a que se referem.
 Item {
     id: root
 
     required property string group
     required property real dp
     required property int gap
-
-    readonly property var deckPlayer: Mixxx.PlayerManager.getPlayer(group)
-    // O player nao expoe titulo nem artista direto: so currentTrack, que muda a
-    // cada carga. Ler atraves dele e o que faz o nome aparecer.
-    readonly property var deckTrack: deckPlayer ? deckPlayer.currentTrack : null
 
     Mixxx.ControlProxy {
         id: playControl
@@ -43,106 +40,55 @@ Item {
         key: "sync_enabled"
     }
     Mixxx.ControlProxy {
-        id: bpmControl
-
-        group: root.group
-        key: "bpm"
-    }
-    Mixxx.ControlProxy {
         id: pflControl
 
         group: root.group
         key: "pfl"
     }
 
-    ColumnLayout {
+    RowLayout {
         anchors.fill: parent
         spacing: root.gap
 
-        // ---- identificacao da faixa ----
-        Rectangle {
-            Layout.fillWidth: true
-            Layout.preferredHeight: Math.round(34 * root.dp)
-            color: Theme.deckBackgroundColor
-            radius: Math.round(4 * root.dp)
-
-            RowLayout {
-                anchors.fill: parent
-                anchors.leftMargin: Math.round(10 * root.dp)
-                anchors.rightMargin: Math.round(10 * root.dp)
-                spacing: Math.round(10 * root.dp)
-
-                Text {
-                    Layout.fillWidth: true
-                    color: Theme.deckTextColor
-                    elide: Text.ElideRight
-                    font.pixelSize: Math.round(14 * root.dp)
-                    text: root.deckTrack && root.deckTrack.title
-                        ? root.deckTrack.title
-                        : qsTr("no track")
-                }
-                Text {
-                    color: Theme.deckTextColor
-                    font.family: "monospace"
-                    font.pixelSize: Math.round(14 * root.dp)
-                    // BPM alinhado a direita e em fonte de largura fixa: o
-                    // numero muda o tempo todo e nao pode dancar na tela.
-                    text: bpmControl.value > 0 ? bpmControl.value.toFixed(1) : "--"
-                }
-            }
-        }
-
-        // ---- transporte ----
-        RowLayout {
+        MobileButton {
             Layout.fillHeight: true
             Layout.fillWidth: true
-            spacing: root.gap
+            checked: playControl.value > 0
+            label: playControl.value > 0 ? qsTr("PAUSE") : qsTr("PLAY")
 
-            MobileButton {
-                Layout.fillHeight: true
-                Layout.fillWidth: true
-                checked: playControl.value > 0
-                label: playControl.value > 0 ? qsTr("PAUSE") : qsTr("PLAY")
-
-                onClicked: {
-                    playControl.value = playControl.value > 0 ? 0 : 1;
-                }
+            onClicked: {
+                playControl.value = playControl.value > 0 ? 0 : 1;
             }
-            MobileButton {
-                Layout.fillHeight: true
-                Layout.fillWidth: true
-                checked: cueControl.value > 0
-                label: qsTr("CUE")
+        }
+        MobileButton {
+            Layout.fillHeight: true
+            Layout.fillWidth: true
+            checked: cueControl.value > 0
+            label: qsTr("CUE")
 
-                // CUE responde ao apertar e ao soltar, como no hardware:
-                // segurar toca a partir do ponto, soltar volta para ele.
-                onPressed: cueControl.value = 1
-                onReleased: cueControl.value = 0
+            // CUE responde ao apertar e ao soltar, como no hardware: segurar
+            // toca a partir do ponto, soltar volta para ele.
+            onPressed: cueControl.value = 1
+            onReleased: cueControl.value = 0
+        }
+        MobileButton {
+            Layout.fillHeight: true
+            Layout.preferredWidth: Math.round(90 * root.dp)
+            checked: pflControl.value > 0
+            label: qsTr("PFL")
+
+            onClicked: {
+                pflControl.value = pflControl.value > 0 ? 0 : 1;
             }
-            // Monitoracao no fone. Sem ela o canal do fone recebe silencio de
-            // proposito, e numa controladora com saida propria isso aparece
-            // como "o fone nao funciona" - foi o que aconteceu no aparelho.
-            // Escutar a proxima faixa antes de solta-la e o gesto que define
-            // mixar; nao havia como faze-lo pela tela.
-            MobileButton {
-                Layout.fillHeight: true
-                Layout.preferredWidth: Math.round(90 * root.dp)
-                checked: pflControl.value > 0
-                label: qsTr("PFL")
+        }
+        MobileButton {
+            Layout.fillHeight: true
+            Layout.preferredWidth: Math.round(110 * root.dp)
+            checked: syncControl.value > 0
+            label: qsTr("SYNC")
 
-                onClicked: {
-                    pflControl.value = pflControl.value > 0 ? 0 : 1;
-                }
-            }
-            MobileButton {
-                Layout.fillHeight: true
-                Layout.preferredWidth: Math.round(110 * root.dp)
-                checked: syncControl.value > 0
-                label: qsTr("SYNC")
-
-                onClicked: {
-                    syncControl.value = syncControl.value > 0 ? 0 : 1;
-                }
+            onClicked: {
+                syncControl.value = syncControl.value > 0 ? 0 : 1;
             }
         }
     }
