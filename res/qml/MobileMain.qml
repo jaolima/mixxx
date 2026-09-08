@@ -32,6 +32,11 @@ Item {
     readonly property int deckStripHeight: Math.round(56 * dp)
 
     property bool libraryOpen: false
+    // Duas visoes para o mesmo miolo, porque servem a momentos diferentes:
+    // encaixar dois tempos se faz olhando a onda, acompanhar o que ja esta
+    // tocando se faz olhando o prato. Nao cabem juntas nesta tela sem que as
+    // duas fiquem pequenas demais para o que servem.
+    property bool jogView: false
 
     /// Pedido de abrir a configuracao. Quem trata e o main.qml, que e dono do
     /// popup; daqui so parte o pedido.
@@ -97,10 +102,13 @@ Item {
                 label: qsTr("SETUP")
                 onClicked: root.settingsRequested()
             }
-            Item {
-                Layout.fillWidth: true
+            MobileButton {
+                Layout.preferredHeight: root.touchTarget
+                Layout.preferredWidth: Math.round(110 * root.dp)
+                checked: root.jogView
+                label: root.jogView ? qsTr("JOG") : qsTr("WAVE")
+                onClicked: root.jogView = !root.jogView
             }
-
             // Barramento do fone. Sem estes dois o fone e uma caixa preta: nao
             // da para saber se o silencio vem do volume, da mistura ou de nao
             // haver deck em monitoracao. Sao os controles que uma controladora
@@ -125,8 +133,10 @@ Item {
                 text: qsTr("CUE")
             }
             Skin.MobileSlider {
+                Layout.fillWidth: true
+                Layout.maximumWidth: Math.round(150 * root.dp)
+                Layout.minimumWidth: Math.round(70 * root.dp)
                 Layout.preferredHeight: root.touchTarget
-                Layout.preferredWidth: Math.round(150 * root.dp)
                 dp: root.dp
                 from: -1
                 to: 1
@@ -142,8 +152,10 @@ Item {
                 text: qsTr("MAIN")
             }
             Skin.MobileSlider {
+                Layout.fillWidth: true
+                Layout.maximumWidth: Math.round(150 * root.dp)
+                Layout.minimumWidth: Math.round(70 * root.dp)
                 Layout.preferredHeight: root.touchTarget
-                Layout.preferredWidth: Math.round(150 * root.dp)
                 dp: root.dp
                 from: 0
                 to: 4
@@ -159,14 +171,7 @@ Item {
                 text: qsTr("VOL")
             }
 
-            Item {
-                Layout.preferredWidth: Math.round(10 * root.dp)
-            }
-            Text {
-                color: Theme.deckTextColor
-                font.pixelSize: Math.round(15 * root.dp)
-                text: "MIXXX"
-            }
+
         }
 
         // ---- formas de onda, uma por deck ------------------------------
@@ -179,7 +184,7 @@ Item {
             // risco: elas nao tem altura propria a exigir, e todo o resto tem.
             Layout.minimumHeight: Math.round(150 * root.dp)
             spacing: root.gap
-            visible: !root.libraryOpen
+            visible: !root.libraryOpen && !root.jogView
 
             Repeater {
                 model: ["[Channel1]", "[Channel2]"]
@@ -209,12 +214,50 @@ Item {
                         border.color: Theme.deckBackgroundColor
                         border.width: 1
                         color: "#0a0a0a"
+                        visible: !root.jogView
 
                         Skin.WaveformDisplay {
                             anchors.fill: parent
                             anchors.margins: 1
                             group: parent.parent.modelData
                         }
+                    }
+                }
+            }
+        }
+
+        // ---- pratos, quando escolhidos ---------------------------------
+        RowLayout {
+            Layout.fillHeight: true
+            Layout.fillWidth: true
+            Layout.minimumHeight: Math.round(120 * root.dp)
+            spacing: root.gap
+            visible: root.jogView && !root.libraryOpen
+
+            Repeater {
+                model: ["[Channel1]", "[Channel2]"]
+
+                // Cabecalho junto do prato pelo mesmo motivo de estar junto da
+                // onda: o que se le sobre a faixa fica ao lado do desenho dela,
+                // sem ter de conferir de qual deck e cada coisa.
+                ColumnLayout {
+                    required property string modelData
+
+                    Layout.fillHeight: true
+                    Layout.fillWidth: true
+                    spacing: Math.round(3 * root.dp)
+
+                    Skin.MobileDeckHeader {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: Math.round(46 * root.dp)
+                        dp: root.dp
+                        group: parent.modelData
+                    }
+                    Skin.MobileJog {
+                        Layout.fillHeight: true
+                        Layout.fillWidth: true
+                        dp: root.dp
+                        group: parent.modelData
                     }
                 }
             }
