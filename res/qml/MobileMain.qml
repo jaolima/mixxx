@@ -37,6 +37,10 @@ Item {
     // tocando se faz olhando o prato. Nao cabem juntas nesta tela sem que as
     // duas fiquem pequenas demais para o que servem.
     property bool jogView: false
+    // Os pads entram e saem sob demanda: eles disputam altura com a forma de
+    // onda, e quem esta encaixando dois tempos precisa da onda inteira.
+    property bool padsOpen: false
+    property string padMode: "cue"
 
     /// Pedido de abrir a configuracao. Quem trata e o main.qml, que e dono do
     /// popup; daqui so parte o pedido.
@@ -128,20 +132,20 @@ Item {
 
             MobileButton {
                 Layout.preferredHeight: root.touchTarget
-                Layout.preferredWidth: Math.round(130 * root.dp)
+                Layout.preferredWidth: Math.round(96 * root.dp)
                 checked: root.libraryOpen
-                label: qsTr("LIBRARY")
+                label: qsTr("LIB")
                 onClicked: root.libraryOpen = !root.libraryOpen
             }
             MobileButton {
                 Layout.preferredHeight: root.touchTarget
-                Layout.preferredWidth: Math.round(110 * root.dp)
-                label: qsTr("SETUP")
+                Layout.preferredWidth: Math.round(86 * root.dp)
+                label: qsTr("SET")
                 onClicked: root.settingsRequested()
             }
             MobileButton {
                 Layout.preferredHeight: root.touchTarget
-                Layout.preferredWidth: Math.round(110 * root.dp)
+                Layout.preferredWidth: Math.round(92 * root.dp)
                 checked: root.jogView
                 label: root.jogView ? qsTr("JOG") : qsTr("WAVE")
                 onClicked: root.jogView = !root.jogView
@@ -155,6 +159,25 @@ Item {
             // Os dois decks recebem o comando: com a sincronizacao de zoom
             // ligada o segundo e redundante, e sem ela seria justamente o que
             // faltava para as duas ondas continuarem comparaveis.
+            MobileButton {
+                Layout.preferredHeight: root.touchTarget
+                Layout.preferredWidth: Math.round(88 * root.dp)
+                checked: root.padsOpen
+                label: root.padsOpen && root.padMode === "loop" ? qsTr("LOOP") : qsTr("PADS")
+                // Um toque abre nos pontos de entrada; com os pads ja abertos,
+                // alterna para os loops e depois fecha. Um botao so, porque a
+                // barra nao tem largura para tres.
+                onClicked: {
+                    if (!root.padsOpen) {
+                        root.padsOpen = true;
+                        root.padMode = "cue";
+                    } else if (root.padMode === "cue") {
+                        root.padMode = "loop";
+                    } else {
+                        root.padsOpen = false;
+                    }
+                }
+            }
             MobileButton {
                 Layout.preferredHeight: root.touchTarget
                 Layout.preferredWidth: Math.round(54 * root.dp)
@@ -343,6 +366,31 @@ Item {
             visible: root.libraryOpen
         }
 
+        // ---- pads, quando abertos --------------------------------------
+        // Acima do transporte porque a mao ja esta ali; e um por deck, lado a
+        // lado, na mesma ordem dos decks acima.
+        RowLayout {
+            Layout.fillHeight: false
+            Layout.fillWidth: true
+            Layout.preferredHeight: root.deckStripHeight
+            spacing: root.gap
+            visible: root.padsOpen && !root.libraryOpen
+
+            Repeater {
+                model: ["[Channel1]", "[Channel2]"]
+
+                Skin.MobilePads {
+                    required property string modelData
+
+                    Layout.fillHeight: true
+                    Layout.fillWidth: true
+                    dp: root.dp
+                    group: modelData
+                    mode: root.padMode
+                }
+            }
+        }
+
         // ---- transporte, um bloco por deck -----------------------------
         RowLayout {
             Layout.fillHeight: false
@@ -351,8 +399,13 @@ Item {
             spacing: root.gap
             // Some junto com as ondas: escolher a proxima faixa e uma tarefa de
             // tela cheia, e PLAY, CUE, SYNC e o crossfader existem em hardware
-            // logo abaixo do celular. Ceder esses 88dp a lista vale mais.
-            visible: !root.libraryOpen
+            // logo abaixo do celular. Ceder essa altura a lista vale mais.
+            //
+            // Da lugar aos pads pelo mesmo motivo: somados, os dois espremiam a
+            // forma de onda ate virar um risco, e a onda e o que se olha para
+            // encaixar o tempo. Com a controladora ligada o transporte esta na
+            // mao de qualquer modo.
+            visible: !root.libraryOpen && !root.padsOpen
 
             Repeater {
                 model: ["[Channel1]", "[Channel2]"]
