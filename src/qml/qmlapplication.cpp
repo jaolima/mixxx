@@ -224,6 +224,35 @@ QmlApplication::QmlApplication(
             });
 
 #if defined(Q_OS_ANDROID)
+    // Refaz a interface ao voltar para a tela.
+    //
+    // O programa continua vivo sem janela de proposito, para nao levar o set
+    // junto (ver main.cpp). Mas a janela destruida nao se refaz sozinha: o
+    // motor seguia tocando e a tela voltava preta. Recarregar o QML reconstroi
+    // so a vista - decks, faixas e audio vivem no C++ e nao sao tocados.
+    connect(qApp,
+            &QGuiApplication::applicationStateChanged,
+            this,
+            [this](Qt::ApplicationState state) {
+                if (state != Qt::ApplicationActive || !m_loadSucceeded) {
+                    return;
+                }
+                const auto roots = m_pAppEngine->rootObjects();
+                if (!roots.isEmpty()) {
+                    auto* pWindow = qobject_cast<QQuickWindow*>(roots.first());
+                    // Exposta significa que ainda ha superficie para desenhar.
+                    // So quando nao ha e que vale o custo de reconstruir.
+                    if (pWindow && pWindow->isExposed()) {
+                        return;
+                    }
+                }
+                qInfo() << "Window is gone after returning to the foreground; "
+                           "rebuilding the interface";
+                if (!loadQml(m_mainFilePath)) {
+                    qWarning() << "Failed to rebuild the interface";
+                }
+            });
+
     APerformanceHintManager* manager = APerformanceHint_getManager();
     VERIFY_OR_DEBUG_ASSERT(manager) {
         return;

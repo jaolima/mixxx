@@ -326,8 +326,22 @@ int main(int argc, char * argv[]) {
     }
 #endif
 
+#ifdef Q_OS_ANDROID
+    // No Android a janela some sempre que o aplicativo sai da tela, e a
+    // destruicao dela ja emite lastWindowClosed - sem evento de fechamento
+    // nenhum. Encerrar ali derruba o laco de eventos junto com o PlayerManager,
+    // e o destrutor de cada deck descarrega a faixa: o set se perde por sair da
+    // tela um instante.
+    //
+    // Anda com duas outras pecas: o moveTaskToBack da MainActivity, que impede
+    // a activity de ser destruida, e a recriacao da interface ao voltar, em
+    // QmlApplication - sem esta ultima o programa sobrevive mas volta preto,
+    // porque a janela destruida nao se refaz sozinha.
+    app.setQuitOnLastWindowClosed(false);
+#else
     // When the last window is closed, terminate the Qt event loop.
     QObject::connect(&app, &MixxxApplication::lastWindowClosed, &app, &MixxxApplication::quit);
+#endif
 
     int exitCode = runMixxx(&app, args);
 

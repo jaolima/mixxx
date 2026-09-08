@@ -26,6 +26,11 @@ public class MainActivity extends QtActivityBase {
             WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
         windowInsetsController.hide(WindowInsetsCompat.Type.navigationBars());
 
+        // Keeps the process alive once it leaves the screen. Without it the
+        // system parks Mixxx as "cached" and kills it within seconds, which
+        // during a set means the music stops.
+        PlaybackService.start(this);
+
         // From Android 13 the system asks for back through this dispatcher, and
         // from target SDK 35 it stops calling onBackPressed() altogether - this
         // project targets 36, so the override below is dead on the devices we
