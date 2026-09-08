@@ -117,6 +117,16 @@ ApplicationWindow {
         anchors.fill: parent
         source: "MobileMain.qml"
         z: 100
+
+        // A tela de configuracao ja existe e sabe listar controladores, ligar e
+        // escolher o mapeamento - so nao havia como chegar nela sem teclado e
+        // mouse. Reusa-la e melhor do que escrever outra: no aparelho, ligar a
+        // controladora exigia editar o arquivo de configuracao por cabo.
+        onLoaded: {
+            item.settingsRequested.connect(function() {
+                settingsPopup.open();
+            });
+        }
     }
 
     Column {

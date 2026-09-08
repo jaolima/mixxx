@@ -31,6 +31,10 @@ Item {
 
     property bool libraryOpen: false
 
+    /// Pedido de abrir a configuracao. Quem trata e o main.qml, que e dono do
+    /// popup; daqui so parte o pedido.
+    signal settingsRequested
+
     // Ao fechar a biblioteca, forcar a coleta de lixo do QML.
     //
     // Cada linha da lista cria um objeto de faixa do lado do JavaScript, e esse
@@ -84,6 +88,12 @@ Item {
                 checked: root.libraryOpen
                 label: qsTr("LIBRARY")
                 onClicked: root.libraryOpen = !root.libraryOpen
+            }
+            MobileButton {
+                Layout.preferredHeight: root.touchTarget
+                Layout.preferredWidth: Math.round(110 * root.dp)
+                label: qsTr("SETUP")
+                onClicked: root.settingsRequested()
             }
             Item {
                 Layout.fillWidth: true
