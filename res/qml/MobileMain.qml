@@ -65,6 +65,43 @@ Item {
         color: Theme.backgroundColor
     }
 
+    // Um proxy por deck e por direcao, em vez de trocar a chave de um so: mudar
+    // a chave em tempo de execucao obriga o proxy a reconectar, e o valor
+    // escrito em seguida cairia no controle antigo.
+    Mixxx.ControlProxy {
+        id: zoomInDeck1
+
+        group: "[Channel1]"
+        key: "waveform_zoom_down"
+    }
+    Mixxx.ControlProxy {
+        id: zoomInDeck2
+
+        group: "[Channel2]"
+        key: "waveform_zoom_down"
+    }
+    Mixxx.ControlProxy {
+        id: zoomOutDeck1
+
+        group: "[Channel1]"
+        key: "waveform_zoom_up"
+    }
+    Mixxx.ControlProxy {
+        id: zoomOutDeck2
+
+        group: "[Channel2]"
+        key: "waveform_zoom_up"
+    }
+
+    // Botao de acao: o controle e do tipo que age na subida, entao o valor sobe
+    // e volta.
+    function pressZoom(proxyA, proxyB) {
+        proxyA.value = 1;
+        proxyB.value = 1;
+        proxyA.value = 0;
+        proxyB.value = 0;
+    }
+
     Component {
         id: libraryComponent
 
@@ -108,6 +145,29 @@ Item {
                 checked: root.jogView
                 label: root.jogView ? qsTr("JOG") : qsTr("WAVE")
                 onClicked: root.jogView = !root.jogView
+            }
+
+            // Aproximar e afastar a onda. No computador isso e a roda do mouse,
+            // que no aparelho nao existe - e sem isso a vista fica presa num
+            // zoom so, servindo ou para procurar o trecho ou para encaixar o
+            // tempo, nunca para os dois.
+            //
+            // Os dois decks recebem o comando: com a sincronizacao de zoom
+            // ligada o segundo e redundante, e sem ela seria justamente o que
+            // faltava para as duas ondas continuarem comparaveis.
+            MobileButton {
+                Layout.preferredHeight: root.touchTarget
+                Layout.preferredWidth: Math.round(54 * root.dp)
+                label: "−"
+                visible: !root.jogView
+                onClicked: root.pressZoom(zoomOutDeck1, zoomOutDeck2)
+            }
+            MobileButton {
+                Layout.preferredHeight: root.touchTarget
+                Layout.preferredWidth: Math.round(54 * root.dp)
+                label: "+"
+                visible: !root.jogView
+                onClicked: root.pressZoom(zoomInDeck1, zoomInDeck2)
             }
             // Barramento do fone. Sem estes dois o fone e uma caixa preta: nao
             // da para saber se o silencio vem do volume, da mistura ou de nao
