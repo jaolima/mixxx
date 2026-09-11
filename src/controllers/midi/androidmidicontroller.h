@@ -78,4 +78,11 @@ class AndroidMidiController : public MidiController {
 
     int m_deviceIndex;
     QJniObject m_bridge;
+    /// Bytes left over from the previous callback.
+    ///
+    /// Android hands over whatever arrived, and a message may be split across
+    /// two calls - the API promises nothing about boundaries. Dispatching an
+    /// incomplete message reads zeros for the missing bytes and, worse, leaves
+    /// the rest of the buffer misaligned.
+    QByteArray m_pending;
 };

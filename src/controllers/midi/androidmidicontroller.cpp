@@ -77,6 +77,9 @@ int AndroidMidiController::close() {
         m_bridge.callMethod<void>("close");
         m_bridge = QJniObject();
     }
+    // Half of a message from this session must not be read as the start of one
+    // in the next.
+    m_pending.clear();
     // MidiController::close() stops the engine and clears the mapping.
     return MidiController::close();
 }
@@ -98,44 +101,70 @@ void AndroidMidiController::handleIncoming(const QByteArray& data) {
 
 void AndroidMidiController::handleIncomingOnControllerThread(
         QByteArray data, mixxx::Duration timestamp) {
-    // Android delivers whole MIDI messages, which may be several in one
-    // callback. Anything starting with SysEx goes through the byte path; the
-    // rest are status/data triples.
+    // Android hands over whatever arrived: several messages in one call, or
+    // half of one. The API makes no promise about message boundaries, so what
+    // cannot be completed yet is carried over to the next call.
+    //
+    // Getting this wrong is not merely a dropped message: dispatching a short
+    // message reads zeros for the bytes that have not arrived and leaves the
+    // rest of the buffer misaligned, so everything after it is garbage too.
+    // Buttons survived that because they arrive alone; the crossfader did not,
+    // because it sends its two halves back to back and Mixxx pairs them only
+    // when they are adjacent.
+    m_pending.append(data);
+
     int i = 0;
-    while (i < data.size()) {
-        const unsigned char status = static_cast<unsigned char>(data.at(i));
-        if (status == 0xF0) {
-            // Take the SysEx through to its terminator, or to the end of what
-            // we were given.
-            int end = i;
-            while (end < data.size() &&
-                    static_cast<unsigned char>(data.at(end)) != 0xF7) {
-                ++end;
-            }
-            if (end < data.size()) {
-                ++end; // include the 0xF7
-            }
-            receive(data.mid(i, end - i), timestamp);
-            i = end;
-            continue;
-        }
-        if (status < 0x80) {
-            // Running status is not expected from the Android API, and without
-            // a status byte there is nothing to dispatch on.
+    while (i < m_pending.size()) {
+        const unsigned char status = static_cast<unsigned char>(m_pending.at(i));
+
+        // Real-time messages are a single byte and may appear anywhere, even
+        // between the bytes of another message.
+        if (status >= 0xF8) {
+            receivedShortMessage(status, 0, 0, timestamp);
             ++i;
             continue;
         }
-        const unsigned char byte1 = (i + 1 < data.size())
-                ? static_cast<unsigned char>(data.at(i + 1))
-                : 0;
-        const unsigned char byte2 = (i + 2 < data.size())
-                ? static_cast<unsigned char>(data.at(i + 2))
+
+        if (status == 0xF0) {
+            int end = i + 1;
+            while (end < m_pending.size() &&
+                    static_cast<unsigned char>(m_pending.at(end)) != 0xF7) {
+                ++end;
+            }
+            if (end >= m_pending.size()) {
+                // Terminator has not arrived yet.
+                break;
+            }
+            receive(m_pending.mid(i, end - i + 1), timestamp);
+            i = end + 1;
+            continue;
+        }
+
+        if (status < 0x80) {
+            // No status byte to dispatch on. Running status is not expected
+            // from this API, so this is a stray byte: drop it rather than
+            // letting it shift everything that follows.
+            ++i;
+            continue;
+        }
+
+        // Program change and channel pressure carry one data byte; the rest
+        // carry two.
+        const unsigned char type = status & 0xF0;
+        const int length = (type == 0xC0 || type == 0xD0) ? 2 : 3;
+        if (i + length > m_pending.size()) {
+            // The rest of this message is still to come.
+            break;
+        }
+        const unsigned char byte1 = static_cast<unsigned char>(m_pending.at(i + 1));
+        const unsigned char byte2 = length == 3
+                ? static_cast<unsigned char>(m_pending.at(i + 2))
                 : 0;
         receivedShortMessage(status, byte1, byte2, timestamp);
-        // Program change and channel pressure carry a single data byte.
-        const unsigned char type = status & 0xF0;
-        i += (type == 0xC0 || type == 0xD0) ? 2 : 3;
+        i += length;
     }
+
+    m_pending.remove(0, i);
 }
 
 void AndroidMidiController::sendShortMsg(unsigned char status,
