@@ -751,6 +751,61 @@ ApplicationWindow {
         x: Math.round((parent.width - width) / 2)
         y: Math.round((parent.height - height) / 2)
 
+        // Botao de fechar, visivel.
+        //
+        // Um Popup fecha com Escape ou com um toque fora dele, e no aparelho
+        // nenhum dos dois serve: nao ha teclado, a janela ocupa quase toda a
+        // tela e o botao de voltar manda o aplicativo para segundo plano em vez
+        // de fechar o que esta aberto. Sem isto nao havia como sair daqui.
+        Rectangle {
+            id: settingsCloseButton
+
+            anchors.right: parent.right
+            anchors.rightMargin: 8
+            anchors.top: parent.top
+            anchors.topMargin: 8
+            border.color: Theme.deckLineColor
+            border.width: 1
+            color: closeArea.pressed ? Theme.accentColor : Theme.deckBackgroundColor
+            height: 48
+            radius: 6
+            width: 48
+            z: 100
+
+            // X desenhado, nao um caractere: a fonte do Android nao traz
+            // U+2715 e o simbolo saia como quadrado vazio.
+            Item {
+                anchors.centerIn: parent
+                height: 20
+                width: 20
+
+                Rectangle {
+                    anchors.centerIn: parent
+                    color: Theme.white
+                    height: 2
+                    radius: 1
+                    rotation: 45
+                    width: parent.width
+                }
+                Rectangle {
+                    anchors.centerIn: parent
+                    color: Theme.white
+                    height: 2
+                    radius: 1
+                    rotation: -45
+                    width: parent.width
+                }
+            }
+
+            MouseArea {
+                id: closeArea
+
+                anchors.fill: parent
+
+                onClicked: settingsPopup.close()
+            }
+        }
+
         Overlay.modal: Rectangle {
             id: overlayModal
 

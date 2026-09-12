@@ -133,20 +133,27 @@ Item {
     // nada - por isso apertar LOAD no aparelho nao carregava.
     //
     // Aqui a selecao e a da propria lista, a mesma que o BROWSE percorre.
-    Repeater {
-        model: ["[Channel1]", "[Channel2]"]
+    // Um por deck, declarados a mao: um Repeater so aceita Item como delegate,
+    // e um ControlProxy nao e - com ele, os dois nunca chegavam a existir e o
+    // botao nao fazia nada. O aviso estava no registro:
+    // "QML Component: Delegate must be of Item type".
+    Mixxx.ControlProxy {
+        group: "[Channel1]"
+        key: "LoadSelectedTrack"
 
-        Mixxx.ControlProxy {
-            required property string modelData
+        onValueChanged: {
+            if (value > 0 && libraryLoader.item) {
+                libraryLoader.item.loadSelectedInto("[Channel1]");
+            }
+        }
+    }
+    Mixxx.ControlProxy {
+        group: "[Channel2]"
+        key: "LoadSelectedTrack"
 
-            group: modelData
-            key: "LoadSelectedTrack"
-
-            onValueChanged: {
-                if (value <= 0 || !libraryLoader.item) {
-                    return;
-                }
-                libraryLoader.item.loadSelectedInto(modelData);
+        onValueChanged: {
+            if (value > 0 && libraryLoader.item) {
+                libraryLoader.item.loadSelectedInto("[Channel2]");
             }
         }
     }
