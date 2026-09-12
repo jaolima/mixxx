@@ -29,6 +29,38 @@ Item {
     // existe, entao vinha nula e a lista ficava vazia.
     readonly property var tracklist: sources.allTracks()
 
+    /// Move a selecao pela lista. Serve ao botao BROWSE da controladora: girar
+    /// e o gesto de procurar a proxima faixa, e ele deve percorrer a lista sem
+    /// obrigar a largar a controladora para tocar na tela.
+    function moveSelection(delta) {
+        if (trackListView.count === 0) {
+            return;
+        }
+        const next = Math.max(0,
+            Math.min(trackListView.count - 1, trackListView.currentIndex + delta));
+        trackListView.currentIndex = next;
+        trackListView.positionViewAtIndex(next, ListView.Contain);
+    }
+
+    /// Carrega no deck a faixa sob a selecao. Serve aos botoes LOAD da
+    /// controladora, que fecham o gesto comecado pelo BROWSE: girar para achar,
+    /// apertar para carregar, sem soltar a controladora.
+    function loadSelectedInto(group) {
+        if (!root.tracklist || trackListView.currentIndex < 0) {
+            return false;
+        }
+        const track = root.tracklist.getTrack(trackListView.currentIndex);
+        if (!track) {
+            return false;
+        }
+        const player = Mixxx.PlayerManager.getPlayer(group);
+        if (!player) {
+            return false;
+        }
+        player.loadTrack(track);
+        return true;
+    }
+
     function search(text) {
         if (root.tracklist) {
             root.tracklist.search(text);
@@ -125,6 +157,9 @@ Item {
             Layout.fillWidth: true
             boundsBehavior: Flickable.StopAtBounds
             clip: true
+            // Comeca na primeira faixa: sem selecao, o LOAD da controladora nao
+            // teria o que carregar numa lista recem-aberta.
+            currentIndex: 0
             model: root.tracklist
             // Rolagem com inercia: numa lista de centenas de faixas, arrastar
             // linha a linha e inviavel.
@@ -142,7 +177,9 @@ Item {
                 required property var track
                 required property url cover_art
 
-                color: index % 2 === 0 ? Theme.deckBackgroundColor : "#151515"
+                color: ListView.isCurrentItem
+                    ? Qt.darker(Theme.accentColor, 1.8)
+                    : (index % 2 === 0 ? Theme.deckBackgroundColor : "#151515")
                 height: root.rowHeight
                 width: ListView.view.width
 

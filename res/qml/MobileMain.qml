@@ -97,6 +97,60 @@ Item {
         key: "waveform_zoom_up"
     }
 
+    // O botao BROWSE da controladora.
+    //
+    // Girar ja e o gesto de procurar a proxima faixa, entao ele abre a
+    // biblioteca por conta propria e, com ela aberta, percorre a lista. Sem
+    // isso era preciso largar a controladora e tocar na tela so para comecar a
+    // procurar.
+    //
+    // O controle e um encoder criado com bIgnoreNops falso (librarycontrol.cpp),
+    // por isso avisa a cada giro mesmo repetindo o valor - um encoder girado
+    // sempre para o mesmo lado manda sempre o mesmo delta. E na interface QML o
+    // Mixxx nao liga este controle a nada, entao ele esta livre.
+    Mixxx.ControlProxy {
+        id: browseKnob
+
+        group: "[Library]"
+        key: "MoveVertical"
+
+        onValueChanged: {
+            if (!root.libraryOpen) {
+                root.libraryOpen = true;
+                return;
+            }
+            if (libraryLoader.item) {
+                libraryLoader.item.moveSelection(value > 0 ? 1 : -1);
+            }
+        }
+    }
+
+    // Os botoes LOAD da controladora.
+    //
+    // No Mixxx eles chamam slotLoadSelectedTrackToGroup, que pede a faixa
+    // selecionada ao widget de biblioteca do computador. Na interface QML esse
+    // widget nao existe, a funcao desiste na primeira linha e o botao nao fazia
+    // nada - por isso apertar LOAD no aparelho nao carregava.
+    //
+    // Aqui a selecao e a da propria lista, a mesma que o BROWSE percorre.
+    Repeater {
+        model: ["[Channel1]", "[Channel2]"]
+
+        Mixxx.ControlProxy {
+            required property string modelData
+
+            group: modelData
+            key: "LoadSelectedTrack"
+
+            onValueChanged: {
+                if (value <= 0 || !libraryLoader.item) {
+                    return;
+                }
+                libraryLoader.item.loadSelectedInto(modelData);
+            }
+        }
+    }
+
     // Botao de acao: o controle e do tipo que age na subida, entao o valor sobe
     // e volta.
     function pressZoom(proxyA, proxyB) {
@@ -358,6 +412,8 @@ Item {
         // uma capa e segura a faixa que mostra, e num aparelho isso nao deve
         // ficar de pe enquanto se olha para as formas de onda.
         Loader {
+            id: libraryLoader
+
             Layout.fillHeight: true
             Layout.fillWidth: true
             Layout.minimumHeight: Math.round(150 * root.dp)
